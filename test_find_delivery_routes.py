@@ -34,20 +34,6 @@ class TestFindRoutes(unittest.TestCase):
         self.assertEqual(rt, rr)
         self.assertEqual(Dc[0], Dr[0])
 
-    def _test_sort_distance_matrix(self):
-        As = fdr.A[:3]
-        Ar = [As[0], As[2], As[1]]
-        Do = [[0, 784, 589],
-              [784, 0, 853],
-              [589, 853, 0]]
-        Ds = [[0, 589, 784],
-              [589, 0, 853],
-              [784, 853, 0]]
-        Dr = fdr.make_distance_matrix(Ar)
-        Dt, sidx = fdr.sort_distance_matrix(Dr)
-        self.assertEqual(Ds, Dt)
-        self.assertEqual(Do, Dr)
-
     def _test_find_routes(self):
         A = fdr.A[:5]
         D = fdr.make_distance_matrix(A)

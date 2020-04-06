@@ -97,16 +97,6 @@ def make_distance_matrix(A, p, r):
     return Dr, Ar, pr, rr
 
 
-def sort_distance_matrix(D, origin_idx=0):
-    dt = D[origin_idx]
-    sidx = [i[0] for i in sorted(enumerate(dt), key=lambda x:x[1])]
-    Ds = [[0 for i in range(len(dt))] for j in range(len(dt))]
-    for i, j in enumerate(sidx):
-        for k, l in enumerate(sidx):
-            Ds[i][k] = D[j][l]
-    return Ds, sidx
-
-
 def find_routes(A, D, r, p):
     # the algorithm!
     return None, None
