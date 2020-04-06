@@ -46,33 +46,55 @@ def initialize_p_r():
     return p, r
 
 
-def make_distance_matrix(A):
+def make_distance_matrix(A, p, r):
 
     n_a = len(A)
+    n_chunk = int(n_a/100)
+
     D = [[0 for i in range(n_a)] for j in range(n_a)]
 
-    n_chunk = int(n_a/10)
-
-    for ri in range(n_chunk+1):
-        ra = ri*10
-        if ri < n_chunk:
-            rb = ri*10+10
+    for ci in range(n_chunk+1):
+        ca = ci*100
+        if ci < n_chunk:
+            cb = ci*100+100
         else:
-            rb = n_a
+            cb = n_a
+        Do = gmc.distance_matrix(origins=A[0],
+                                 destinations=A[ca:cb],
+                                 mode='driving')
+        row = Do['rows'][0]
+        for ti, di in enumerate(range(ca, cb)):
+            D[0][di] = row['elements'][ti]['distance']['value']
+
+    n_p = len(p)
+    n_w = n_a - n_p
+    Ap = [A.pop(i) for i in p[::-1]]
+    Dp = [D[0].pop(i) for i in p[::-1]]
+
+    sidx = [i[0] for i in sorted(enumerate(D[0]), key=lambda x:x[1])]
+    Ar = [A[i] for i in sidx] + Ap
+    pr = list(range(n_a-n_p, n_a))
+    rr = [None for i in range(n_a-n_p)] + list(range(n_p))
+    Dr = [[D[0][i] for i in sidx] + Dp]
+
+    for i, a in enumerate(Ar[1:n_w]):
+        ii = i + 1
+        Dr.append([0 for _ in range(n_a)])
+        n_chunk = int((n_a-ii)/100)
         for ci in range(n_chunk+1):
-            ca = ci*10
+            ca = ci*100+ii
             if ci < n_chunk:
-                cb = ci*10 + 10
+                cb = ci*100+ii+100
             else:
                 cb = n_a
-            Dt = gmc.distance_matrix(origins=A[ra:rb],
-                                     destinations=A[ca:cb],
+            Do = gmc.distance_matrix(origins=a,
+                                     destinations=Ar[ii:],
                                      mode='driving')
-            for ti, di in enumerate(range(ra, rb)):
-                row = Dt['rows'][ti]
-                for tj, dj in enumerate(range(ca, cb)):
-                    D[di][dj] = row['elements'][tj]['distance']['value']
-    return D
+            row = Do['rows'][0]
+            for ti, di in enumerate(range(ca, cb)):
+                Dr[ii][di] = row['elements'][ti]['distance']['value']
+
+    return Dr, Ar, pr, rr
 
 
 def sort_distance_matrix(D, origin_idx=0):
