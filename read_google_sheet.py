@@ -34,7 +34,7 @@ def read_sheet(sheet_id, data_range):
     sheet = service.spreadsheets()
     result = sheet.values().batchGet(spreadsheetId=sheet_id,
                                      ranges=data_range).execute()
-    return result
+    return result['valueRanges'][0]['values']
 
 
 def make_address_list(gs_list):
@@ -65,6 +65,9 @@ def make_address_list(gs_list):
                 if v[role_idx] == 'DRIVER':
                     this_add_list.append(1)
                     driver_idx.append(i)
+                elif v[role_idx] == 'PICKUP':
+                    this_add_list.append(-1)
+                    add_list = [this_add_list] + add_list
                 else:
                     this_add_list.append(0)
                 add_list.append(this_add_list)
