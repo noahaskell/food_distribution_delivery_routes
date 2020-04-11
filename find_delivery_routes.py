@@ -31,6 +31,7 @@ A = [['Haight St Market', '1530 Haight St, San Francisco, CA 94117', None, -1],
 
 p = [i for i, a in enumerate(A) if a[-1]==1]
 
+
 def make_distance_row(A, o_idx=0, offset=0):
     n_a = len(A)
     n_chunk = int((n_a-offset)/100)
@@ -78,5 +79,34 @@ def make_distance_matrix(A, p):
 
 
 def find_routes(D, A, p):
-    # the algorithm!
-    return None
+    R = {}
+    d_offset = p[0]
+    n_driver = len(p)
+    for i, di in enumerate(p):
+        R[i] = {}
+        R[i]['name'] = A[di][0] # driver name
+        R[i]['route_address'] = [A[0][:2]] # route address list w/ origin
+        R[i]['route_idx'] = [0] # route indices for querying D w/ origin
+        R[i]['distance'] = 0 # total distance of route
+
+    for i, a in enumerate(A):
+        if i not in p and i != 0:
+            #if a[2] not None: # pre-designated driver
+            #    for di in range(n_driver):
+            #        if a[2] in R[di]['name']:
+            #            R[di]['route_address'].append(a)
+            #            R[di]['distance'] += D[R[di]['route_idx'][-1]][i]
+            #            R[di]['route_idx'].append(i)
+            #else:
+            j_min, d_min = -1, 1e6
+            for j in range(n_driver):
+                if D[R[j]['route_idx'][-1]][i] + D[i][p[j]] < d_min:
+                    j_min, d_min = j, D[R[j]['route_idx'][-1]][i]
+            R[j_min]['route_address'].append(a[:2])
+            R[j_min]['route_idx'].append(i)
+            R[j_min]['distance'] += d_min
+    for j, di in enumerate(p):
+        R[j]['route_address'].append(A[di][:2])
+        R[j]['distance'] += D[R[j]['route_idx'][-1]][di]
+        R[j]['route_idx'].append(di)
+    return R
