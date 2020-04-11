@@ -48,9 +48,12 @@ class TestFindRoutes(unittest.TestCase):
                    [0, 0, 1001, 1368, 2810, 1103],
                    [0, 0, 0, 914, 1794, 853],
                    [0, 0, 0, 0, 1981, 1577]]
+        self.Dr = [self.Dc[0][0], self.Dc[0][2], self.Dc[0][5],
+                   self.Dc[0][3], self.Dc[0][4], self.Dc[0][1]]  
 
-    def _test_make_distance_row(self):
-        pass
+    def test_make_distance_row(self):
+        Dr = fdr.make_distance_row(self.As)
+        self.assertEqual(self.Dr, Dr)
 
     def test_make_distance_matrix(self):
         Dr, Ar, pr = fdr.make_distance_matrix(self.As, self.p)
@@ -58,9 +61,7 @@ class TestFindRoutes(unittest.TestCase):
         self.assertEqual([4, 5], pr)
         self.assertEqual(self.Dc[0], Dr[0])
 
-    def _test_find_routes(self):
-        A = fdr.A[:5]
-        D = fdr.make_distance_matrix(A)
-        p = [1, 4]
-        r = [None, 0, None, None, 1]
-        S, C = fdr.find_routes(A, D, r, p)
+    def test_find_routes(self):
+        D = fdr.make_distance_matrix(self.As, self.p)
+        R = fdr.find_routes(D, self.As, self.p)
+        self.assertIsInstance(R, dict)
