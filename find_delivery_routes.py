@@ -1,5 +1,7 @@
 import googlemaps as gm
 import read_google_sheet as rgs
+import datetime
+from urllib.parse import urlencode
 
 with open('google_cloud_api_key.txt', 'r') as f:
     API_KEY = f.readline().strip('\n')
@@ -100,13 +102,85 @@ def find_routes(D, A, p):
             #else:
             j_min, d_min = -1, 1e6
             for j in range(n_driver):
-                if D[R[j]['route_idx'][-1]][i] + D[i][p[j]] < d_min:
-                    j_min, d_min = j, D[R[j]['route_idx'][-1]][i]
+                this_distance = D[R[j]['route_idx'][-1]][i] + D[i][p[j]]
+                if this_distance < d_min:
+                    j_min, d_min = j, this_distance
             R[j_min]['route_address'].append(a[:2])
             R[j_min]['route_idx'].append(i)
-            R[j_min]['distance'] += d_min
+            R[j_min]['distance'] += d_min - D[i][p[j]]
     for j, di in enumerate(p):
         R[j]['route_address'].append(A[di][:2])
         R[j]['distance'] += D[R[j]['route_idx'][-1]][di]
         R[j]['route_idx'].append(di)
     return R
+
+
+def naive_find_routes(D, A, p):
+    R = {}
+    d_offset = p[0]
+    n_driver = len(p)
+    for i, di in enumerate(p):
+        R[i] = {}
+        R[i]['name'] = A[di][0] # driver name
+        R[i]['route_address'] = [A[0][:2]] # route address list w/ origin
+        R[i]['route_idx'] = [0] # route indices for querying D w/ origin
+        R[i]['distance'] = 0 # total distance of route
+
+    for i, a in enumerate(A):
+        if i not in p and i != 0:
+            #if a[2] not None: # pre-designated driver
+            #    for di in range(n_driver):
+            #        if a[2] in R[di]['name']:
+            #            R[di]['route_address'].append(a)
+            #            R[di]['distance'] += D[R[di]['route_idx'][-1]][i]
+            #            R[di]['route_idx'].append(i)
+            #else:
+            j_min, d_min = -1, 1e6
+            for j in range(n_driver):
+                if D[0][i] + D[i][p[j]] < d_min:
+                    j_min, d_min = j, D[0][i] + D[i][p[j]]
+            R[j_min]['route_address'].append(a[:2])
+            R[j_min]['distance'] += D[R[j]['route_idx'][-1]][i]
+            R[j_min]['route_idx'].append(i)
+    for j, di in enumerate(p):
+        R[j]['route_address'].append(A[di][:2])
+        R[j]['distance'] += D[R[j]['route_idx'][-1]][di]
+        R[j]['route_idx'].append(di)
+    return R
+
+
+def make_directions_links(R, filename=None):
+    base_url = 'https://www.google.com/maps/dir/?api=1&'
+    link_dict = {}
+    for k, v in R.items():
+        url_dict = {}
+        url_dict['origin'] = v['route_address'][0]
+        url_dict['destination'] = v['route_address'][-1]
+        url_dict['waypoints'] = '|'.join([a[1] for a in v['route_address'][1:-1]])
+        url_dict['travelmode'] = 'driving'
+        link_dict[v['name']] = []
+        link_dict[v['name']].append(base_url + urlencode(url_dict))
+        link_dict[v['name']].append('\n'.join([a[0] + ' ' + a[1] for a in v['route_address']]))
+
+    if filename is not None:
+        with open(filename, 'w') as f:
+            for k, v in link_dict.items():
+                f.write(k + '\n')
+                f.write(v[0] + '\n')
+                f.write(v[1] + '\n')
+                f.write('\n')
+    return link_dict
+
+if __name__ == '__main__':
+    with open('google_sheet_id.txt', 'r') as f:
+        sheet_id = f.readline().strip('\n')
+    data_range = 'A1:G1000'
+    gs_list = rgs.read_sheet(sheet_id, data_range)
+    add_list, di_list = rgs.make_address_list(gs_list)
+    D, Ar, pr = make_distance_matrix(add_list, di_list)
+    R = find_delivery_routes(D, Ar, pr)
+    date = datetime.datetime.today()
+    date_list = [str(date.year), str(date.month), str(date.day),
+                 str(date.hour), str(date.minute)]
+    date_string = '_'.join(date_list)
+    S = make_directions_links(R, filename=date_string + '.txt')

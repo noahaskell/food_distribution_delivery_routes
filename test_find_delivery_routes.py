@@ -56,8 +56,7 @@ class TestFindRoutes(unittest.TestCase):
         self.assertEqual(self.Dr, Dr)
 
     def test_make_distance_matrix(self):
-        A = [i for i in self.As]
-        Dr, Ar, pr = fdr.make_distance_matrix(A, self.p)
+        Dr, Ar, pr = fdr.make_distance_matrix(self.As, self.p)
         self.assertEqual(self.At, Ar)
         self.assertEqual([4, 5], pr)
         self.assertEqual(self.Dc[0], Dr[0])
@@ -66,3 +65,20 @@ class TestFindRoutes(unittest.TestCase):
         D, Ar, pr  = fdr.make_distance_matrix(self.As, self.p)
         R = fdr.find_routes(D, Ar, pr)
         self.assertIsInstance(R, dict)
+        # make more tests?
+
+    def test_naive_find_routes(self):
+        D, Ar, pr  = fdr.make_distance_matrix(self.As, self.p)
+        R = fdr.naive_find_routes(D, Ar, pr)
+        self.assertIsInstance(R, dict)
+        # make more tests?
+        
+
+    def test_make_directions_links(self):
+        D, Ar, pr  = fdr.make_distance_matrix(self.As, self.p)
+        R = fdr.find_routes(D, Ar, pr)
+        S = fdr.make_directions_links(R)
+        self.assertIsInstance(S, dict)
+        self.assertTrue(all([v[1].split('\n')[0] == self.As[0][0]\
+                            + ' ' + self.As[0][1] for v in S.values()]))
+
