@@ -36,10 +36,10 @@ class TestReadSheet(unittest.TestCase):
 class TestFindRoutes(unittest.TestCase):
 
     def setUp(self):
-        self.As = [['Haight St Market', '1530 Haight St, San Francisco, CA 94117', None, 0],
+        self.As = [['Haight St Market', '1530 Haight St, San Francisco, CA 94117', None, -1],
                    ['Flywheel', '672 Stanyan St, San Francisco, CA 94117', 'Arsicault', 0],
                    ['La Boulangerie', '1000 Cole St, San Francisco, CA 94117', None, 1],
-                   ['Freewheel Bike Shop', '1920 Hayes St #1126, San Francisco, CA 94117', None, 0],
+                   ['Freewheel Bike Shop', '1920 Hayes St #1126, San Francisco, CA 94117', 'La Boulangerie', 0],
                    ['Arsicault', '397 Arguello Blvd, San Francisco, CA 94118', None, 1], 
                    ['Ritual Coffee', '1300 Haight St, San Francisco, CA 94117', 'La Boulangerie', 0]]
         self.At = [self.As[0], self.As[5], self.As[1], self.As[3], self.As[4], self.As[2]]
@@ -59,7 +59,7 @@ class TestFindRoutes(unittest.TestCase):
         Dr, Ar, pr = fdr.make_distance_matrix(self.As, self.p)
         self.assertEqual(self.At, Ar)
         self.assertEqual([4, 5], pr)
-        self.assertEqual(self.Dc[0], Dr[0])
+        self.assertEqual(self.Dc, Dr)
 
     def test_find_routes(self):
         D, Ar, pr  = fdr.make_distance_matrix(self.As, self.p)
@@ -78,6 +78,14 @@ class TestFindRoutes(unittest.TestCase):
         self.assertTrue(any(['Ritual' in a[0] for a in R[1]['route_address']]))
         self.assertTrue('Arsicault' in [v['name'] for v in R.values()])
         self.assertTrue('La Boulangerie' in [v['name'] for v in R.values()])
+
+    def test_optimize_waypoints(self):
+        D, Ar, pr  = fdr.make_distance_matrix(self.As, self.p)
+        R = fdr.naive_find_routes(D, Ar, pr)
+        O = fdr.optimize_waypoints(R)
+        self.assertIsInstance(O, dict)
+        self.assertTrue(O[1]['route_address'][1][0] == 'Ritual Coffee')
+        self.assertTrue(O[1]['route_address'][2][0] == 'Freewheel Bike Shop')
 
     def test_make_directions_links(self):
         D, Ar, pr  = fdr.make_distance_matrix(self.As, self.p)
