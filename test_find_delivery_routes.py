@@ -19,7 +19,7 @@ class TestReadSheet(unittest.TestCase):
         data = rgs.read_sheet(sheet_id, data_range)
         self.assertIsInstance(data, list)
         headers = ['Name', 'Street address', 'Apt / Unit #', 'City, State',
-                   'Zip code', 'Pick-up or Delivery', 'Driver']
+                   'Zip code', 'Pick-up or Delivery', 'Fixed Driver']
         self.assertTrue(data[0]==headers)
 
     def test_make_address_list(self):
@@ -65,14 +65,19 @@ class TestFindRoutes(unittest.TestCase):
         D, Ar, pr  = fdr.make_distance_matrix(self.As, self.p)
         R = fdr.find_routes(D, Ar, pr)
         self.assertIsInstance(R, dict)
-        # make more tests?
+        self.assertTrue(any(['Flywheel' in a[0] for a in R[0]['route_address']]))
+        self.assertTrue(any(['Ritual' in a[0] for a in R[1]['route_address']]))
+        self.assertTrue('Arsicault' in [v['name'] for v in R.values()])
+        self.assertTrue('La Boulangerie' in [v['name'] for v in R.values()])
 
     def test_naive_find_routes(self):
         D, Ar, pr  = fdr.make_distance_matrix(self.As, self.p)
         R = fdr.naive_find_routes(D, Ar, pr)
         self.assertIsInstance(R, dict)
-        # make more tests?
-        
+        self.assertTrue(any(['Flywheel' in a[0] for a in R[0]['route_address']]))
+        self.assertTrue(any(['Ritual' in a[0] for a in R[1]['route_address']]))
+        self.assertTrue('Arsicault' in [v['name'] for v in R.values()])
+        self.assertTrue('La Boulangerie' in [v['name'] for v in R.values()])
 
     def test_make_directions_links(self):
         D, Ar, pr  = fdr.make_distance_matrix(self.As, self.p)

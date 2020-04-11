@@ -44,7 +44,7 @@ def make_address_list(gs_list):
     city_state_idx = headers.index('City, State')
     zip_idx = headers.index('Zip code')
     role_idx = headers.index('Pick-up or Delivery')
-    fixed_route_idx = headers.index('Driver')
+    fixed_route_idx = headers.index('Fixed Driver')
 
     add_idx = [street_idx, city_state_idx, zip_idx]
     add_list = []
@@ -64,13 +64,14 @@ def make_address_list(gs_list):
                 this_add_list.append(route_indicator)
                 if v[role_idx] == 'DRIVER':
                     this_add_list.append(1)
-                    driver_idx.append(i)
+                    driver_idx.append(i+1)
+                    add_list.append(this_add_list)
                 elif v[role_idx] == 'PICKUP':
                     this_add_list.append(-1)
                     add_list = [this_add_list] + add_list
                 else:
                     this_add_list.append(0)
-                add_list.append(this_add_list)
+                    add_list.append(this_add_list)
     return add_list, driver_idx
 
 
