@@ -6,36 +6,69 @@ from array import array
 
 
 def get_maps_client(key_file='google_cloud_api_key.txt'):
+    """
+    Creates and returns Google Maps client.
+    """
     with open(key_file, 'r') as f:
         API_KEY = f.readline().strip('\n')
 
     return gm.Client(key=API_KEY)
 
 
-# fixed/test set of addresses
-A = [['Haight St Market', '1530 Haight St, San Francisco, CA 94117', None, -1],
-     ['Flywheel', '672 Stanyan St, San Francisco, CA 94117', None, 0],
-     ['La Boulangerie', '1000 Cole St, San Francisco, CA 94117', None, 1],
-     ['Freewheel Bike Shop', '1920 Hayes St #1126, San Francisco, CA 94117', 'Arsicault', 0],
-     ['Arsicault', '397 Arguello Blvd, San Francisco, CA 94118', None, 1], 
-     ['Ritual Coffee', '1300 Haight St, San Francisco, CA 94117', 'Boulangerie', 0],
-     ['Ice Cream Bar', '815 Cole St, San Francisco, CA 94117', None, 0],
-     ['Toronado', '547 Haight St, San Francisco, CA 94117', None, 1],
-     ['Thorough Bread', '248 Church St, San Francisco, CA 94114', None, 0],
-     ['Arizmendi', '1331 9th Ave, San Francisco, CA 94122', 'Andytown', 0],
-     ['Nopalito', '1224 9th Ave, San Francisco, CA 94122', None, 0],
-     ['Mama Jis', '4416 18th St, San Francisco, CA 94114', None, 1],
-     ['Oz Pizza', '508 Castro St #32, San Francisco, CA 94114', None, 0],
-     ['Castro Fountain', '554 Castro St, San Francisco, CA 94114', None, 0],
-     ['Hot Cookie', '407 Castro St #2019, San Francisco, CA 94114', 'Mama', 0],
-     ['La Marais', '498 Sanchez St, San Francisco, CA 94114', None, 0],
-     ['Zazie', '941 Cole St, San Francisco, CA 94117', None, 0],
-     ['Bacon Bacon', '205A Frederick St, San Francisco, CA 94117', None, 0],
-     ['Taqueria Cancun', '2288 Mission St, San Francisco, CA 94110', None, 0],
-     ['Tartine', '600 Guerrero St, San Francisco, CA 94110', None, 0],
-     ['Andytown', '3655 Lawton St, San Francisco, CA 94122', None, 1]]
+def fixed_addresses():
+    """
+    Fixed list of address tuples
 
-p = [i for i, a in enumerate(A) if a[-1]==1]
+    :returns: list of address tuples A
+    :returns: array of driver indices p
+    """
+
+    A = [('Haight St Market',
+          '1530 Haight St, San Francisco, CA 94117', None, -1),
+         ('Flywheel',
+          '672 Stanyan St, San Francisco, CA 94117', None, 0),
+         ('La Boulangerie',
+          '1000 Cole St, San Francisco, CA 94117', None, 1),
+         ('Freewheel Bike Shop',
+          '1920 Hayes St #1126, San Francisco, CA 94117', 'Arsicault', 0),
+         ('Arsicault',
+          '397 Arguello Blvd, San Francisco, CA 94118', None, 1),
+         ('Ritual Coffee',
+          '1300 Haight St, San Francisco, CA 94117', 'Boulangerie', 0),
+         ('Ice Cream Bar',
+          '815 Cole St, San Francisco, CA 94117', None, 0),
+         ('Toronado',
+          '547 Haight St, San Francisco, CA 94117', None, 1),
+         ('Thorough Bread',
+          '248 Church St, San Francisco, CA 94114', None, 0),
+         ('Arizmendi',
+          '1331 9th Ave, San Francisco, CA 94122', 'Andytown', 0),
+         ('Nopalito',
+          '1224 9th Ave, San Francisco, CA 94122', None, 0),
+         ('Mama Jis',
+          '4416 18th St, San Francisco, CA 94114', None, 1),
+         ('Oz Pizza',
+          '508 Castro St #32, San Francisco, CA 94114', None, 0),
+         ('Castro Fountain',
+          '554 Castro St, San Francisco, CA 94114', None, 0),
+         ('Hot Cookie',
+          '407 Castro St #2019, San Francisco, CA 94114', 'Mama', 0),
+         ('La Marais',
+          '498 Sanchez St, San Francisco, CA 94114', None, 0),
+         ('Zazie',
+          '941 Cole St, San Francisco, CA 94117', None, 0),
+         ('Bacon Bacon',
+          '205A Frederick St, San Francisco, CA 94117', None, 0),
+         ('Taqueria Cancun',
+          '2288 Mission St, San Francisco, CA 94110', None, 0),
+         ('Tartine',
+          '600 Guerrero St, San Francisco, CA 94110', None, 0),
+         ('Andytown',
+          '3655 Lawton St, San Francisco, CA 94122', None, 1)]
+
+    p = array('i', [i for i, a in enumerate(A) if a[-1] == 1])
+
+    return A, p
 
 
 def make_distance_row(A, o_idx=0, offset=0):
