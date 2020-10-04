@@ -72,6 +72,17 @@ def fixed_addresses():
 
 
 def make_distance_row(A, gmc, o_idx=0, offset=0):
+    """
+    Creates distance matrix row
+
+    :param A: list of address tuples
+              (name, address, pre-designated driver, flag)
+              flag: -1 if origin, 0 if waypoint, 1 if endpoint
+    :param gmc: Google Maps client object
+    :param o_idx: origin address index
+    :param offset: where to start getting distances
+    :returns: array of distances
+    """
     n_a = len(A)
     chunk_size = 100  # google maps only returns 100 distances per request
     n_chunk = int((n_a-offset-1)/chunk_size)
@@ -95,7 +106,22 @@ def make_distance_row(A, gmc, o_idx=0, offset=0):
 
 
 def make_distance_matrix(A, p, gmc, full_matrix=False):
+    """
+    Creates distance matrix
 
+    :param A: list of address tuples
+              (name, address, pre-designated driver, flag)
+              flag: -1 if origin, 0 if waypoint, 1 if endpoint
+    :param p: array of endpoint (driver) indices
+    :param gmc: Google Maps client
+    :param full_matrix: boolean
+                        True: every pairwise distance
+                        False: upper triangle only
+    :returns: distance matrix, sorted address list & endpoint indices
+              Dr: distance matrix
+              Ar: sorted list of address tuples (sort key: dist from origin)
+              pr: corresponding array of endpoint indices
+    """
     n_a = len(A)
 
     D = make_distance_row(A, gmc)
@@ -248,4 +274,5 @@ if __name__ == '__main__':
         Sn = make_directions_links(Rn, filename=date_string + '_naive.txt')
     else:
         add_list, di_list = fixed_addresses()
-        D, Ar, pr = make_distance_matrix(add_list, di_list, maps_client)
+        D, Ar, pr = make_distance_matrix(add_list, di_list,
+                                         maps_client, full_matrix=True)
