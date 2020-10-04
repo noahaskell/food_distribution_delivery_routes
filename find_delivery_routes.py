@@ -219,12 +219,16 @@ def make_directions_links(R, filename=None):
                 f.write('\n')
     return link_dict
 
-if __name__ == '__main__':
-    with open('google_sheet_id.txt', 'r') as f:
+
+def read_address_gsheet(id_file='google_sheet_id.txt'):
+    with open(id_file, 'r') as f:
         sheet_id = f.readline().strip('\n')
     data_range = 'A1:G1000'
     gs_list = rgs.read_sheet(sheet_id, data_range)
-    add_list, di_list = rgs.make_address_list(gs_list)
+    address_list, driver_idx_list = rgs.make_address_list(gs_list)
+    return address_list, driver_idx_list
+
+if __name__ == '__main__':
     D, Ar, pr = make_distance_matrix(add_list, di_list)
     R = find_routes(D, Ar, pr)
     Rn = naive_find_routes(D, Ar, pr)
