@@ -2,11 +2,15 @@ import googlemaps as gm
 import read_google_sheet as rgs
 import datetime
 from urllib.parse import urlencode
+from array import array
 
-with open('google_cloud_api_key.txt', 'r') as f:
-    API_KEY = f.readline().strip('\n')
 
-gmc = gm.Client(key=API_KEY)
+def get_maps_client(key_file='google_cloud_api_key.txt'):
+    with open(key_file, 'r') as f:
+        API_KEY = f.readline().strip('\n')
+
+    return gm.Client(key=API_KEY)
+
 
 # fixed/test set of addresses
 A = [['Haight St Market', '1530 Haight St, San Francisco, CA 94117', None, -1],
