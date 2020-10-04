@@ -71,19 +71,19 @@ def fixed_addresses():
     return A, p
 
 
-def make_distance_row(A, o_idx=0, offset=0):
+def make_distance_row(A, gmc, o_idx=0, offset=0):
     n_a = len(A)
-    chunk_size = 100
+    chunk_size = 100  # google maps only returns 100 distances per request
     n_chunk = int((n_a-offset-1)/chunk_size)
 
-    D = [0 for i in range(n_a)]
+    D = array('i', [0 for i in range(n_a)])
 
     for ci in range(n_chunk+1):
-        ca = ci*chunk_size+offset
+        ca = ci*chunk_size+offset  # start index for chunk ci
         if ci < n_chunk:
-            cb = ci*chunk_size+chunk_size+offset
+            cb = ci*chunk_size+chunk_size+offset  # end index
         else:
-            cb = n_a
+            cb = n_a  # end index
         dest_list = [A[cj][1] for cj in range(ca, cb)]
         Do = gmc.distance_matrix(origins=A[o_idx][1],
                                  destinations=dest_list,
