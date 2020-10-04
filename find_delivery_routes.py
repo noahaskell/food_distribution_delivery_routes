@@ -94,25 +94,28 @@ def make_distance_row(A, gmc, o_idx=0, offset=0):
     return D
 
 
-def make_distance_matrix(A, p):
+def make_distance_matrix(A, p, gmc, full_matrix=False):
 
     n_a = len(A)
 
-    D = []
-    D.append(make_distance_row(A))
+    D = make_distance_row(A, gmc)
 
     n_p = len(p)
-    n_w = n_a - n_p
+    n_w = n_a - n_p  # number of waypoints
     Ap = [A.pop(i) for i in p[::-1]]
-    Dp = [D[0].pop(i) for i in p[::-1]]
+    Dp = array('i', [D.pop(i) for i in p[::-1]])
 
-    sidx = [i[0] for i in sorted(enumerate(D[0]), key=lambda x:x[1])]
+    sidx = [i[0] for i in sorted(enumerate(D), key=lambda x: x[1])]
     Ar = [A[i] for i in sidx] + Ap
     pr = list(range(n_a-n_p, n_a))
-    Dr = [[D[0][i] for i in sidx] + Dp]
+    Dr = [array('i', [D[i] for i in sidx]) + Dp]
 
     for i, a in enumerate(Ar[1:n_w]):
-        Dr.append(make_distance_row(Ar, o_idx=i, offset=i+1))
+        if full_matrix:
+            offset = 0
+        else:
+            offset = i+2
+        Dr.append(make_distance_row(Ar, gmc, o_idx=i+1, offset=offset))
 
     return Dr, Ar, pr
 
