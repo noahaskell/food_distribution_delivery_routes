@@ -228,13 +228,24 @@ def read_address_gsheet(id_file='google_sheet_id.txt'):
     address_list, driver_idx_list = rgs.make_address_list(gs_list)
     return address_list, driver_idx_list
 
+
 if __name__ == '__main__':
-    D, Ar, pr = make_distance_matrix(add_list, di_list)
-    R = find_routes(D, Ar, pr)
-    Rn = naive_find_routes(D, Ar, pr)
-    date = datetime.datetime.today()
-    date_list = [str(date.year), str(date.month), str(date.day),
-                 str(date.hour), str(date.minute)]
-    date_string = '_'.join(date_list)
-    S = make_directions_links(R, filename=date_string + '_routes.txt')
-    Sn = make_directions_links(Rn, filename=date_string + '_naive.txt')
+
+    for_realsies = False
+
+    maps_client = get_maps_client()
+
+    if for_realsies:
+        add_list, di_list = read_address_gsheet()
+        D, Ar, pr = make_distance_matrix(add_list, di_list, maps_client)
+        R = find_routes(D, Ar, pr)
+        Rn = naive_find_routes(D, Ar, pr)
+        date = datetime.datetime.today()
+        date_list = [str(date.year), str(date.month), str(date.day),
+                     str(date.hour), str(date.minute)]
+        date_string = '_'.join(date_list)
+        S = make_directions_links(R, filename=date_string + '_routes.txt')
+        Sn = make_directions_links(Rn, filename=date_string + '_naive.txt')
+    else:
+        add_list, di_list = fixed_addresses()
+        D, Ar, pr = make_distance_matrix(add_list, di_list, maps_client)
