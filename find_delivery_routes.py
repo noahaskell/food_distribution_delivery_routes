@@ -123,6 +123,7 @@ def make_distance_matrix(A, p, gmc, full_matrix=False):
               pr: corresponding array of endpoint indices
     """
     n_a = len(A)
+    At = [a for a in A]
 
     D = make_distance_row(A, gmc)
 
@@ -177,7 +178,7 @@ def find_routes(D, A, p):
                         j_min, d_min = j, this_distance
                 R[j_min]['route_address'].append(a[:2])
                 R[j_min]['route_idx'].append(i)
-                R[j_min]['distance'] += d_min - D[i][p[j]]
+                R[j_min]['distance'] += D[R[j_min]['route_idx'][-1]][i]
     for j, di in enumerate(p):
         R[j]['route_address'].append(A[di][:2])
         R[j]['distance'] += D[R[j]['route_idx'][-1]][di]
@@ -221,6 +222,27 @@ def naive_find_routes(D, A, p):
         R[j]['distance'] += D[R[j]['route_idx'][-1]][di]
         R[j]['route_idx'].append(di)
     return R
+
+
+def optimize_waypoints(R):
+    O = {}
+    for k, v in R.items():
+        O[k] = {}
+        O[k]['name'] = v['name']
+        route_adds = v['route_address']
+        o = route_adds[0][1]
+        o_n = route_adds[0][0]
+        d = route_adds[-1][1]
+        d_n = route_adds[-1][0]
+        w = [a[1] for a in route_adds[1:-1]]
+        w_n = [a[0] for a in route_adds[1:-1]]
+        opt_list = gmc.directions(origin=o, destination=d, waypoints=w,
+                                  mode='driving', optimize_waypoints=True)
+        opt_idx = opt_list[0]['waypoint_order']
+        O[k]['route_address'] = [route_adds[0]] + [route_adds[i+1] for i in opt_idx] + [route_adds[-1]]
+        O[k]['route_idx'] = [0] + [v['route_idx'][i+1] for i in opt_idx] + [v['route_idx'][-1]]
+        O[k]['distance'] = v['distance']
+    return O
 
 
 def make_directions_links(R, filename=None):
