@@ -53,6 +53,16 @@ def sheet_service():
 
 
 def read_address_sheets(service, gsheet_fname, data_range=None):
+    """
+    Reads and parses addresses from sheets with titles like "[Name] ~ List"
+
+    :param service: connection to google sheets, returned by sheet_service()
+    :param gsheet_fname: local filename with google spreadsheet id
+    :param data_range: string indicating range of cells of interest
+
+    :returns dict: keys = driver names, values = lists of addresses
+                                         [origin, waypoints, destination]
+    """
 
     with open(gsheet_fname, 'r') as f:
         sheet_id = f.readline().strip('\n')
@@ -86,6 +96,14 @@ def read_address_sheets(service, gsheet_fname, data_range=None):
 
 
 def make_address_list(gs_list):
+    """
+    Parses list of lists returned by google sheets api
+
+    :param gs_list: list of lists from google sheets api
+
+    :returns list: list with addresses as strings
+    """
+
     headers = gs_list[0]
     street_idx = headers.index('Street address')
     city_state_idx = headers.index('City, State')
@@ -108,6 +126,15 @@ def make_address_list(gs_list):
 
 
 def optimize_waypoints(add_dict, gmap_client):
+    """
+    Uses google maps api to optimize waypoints for routes
+
+    :param add_dict: dictionary with name: address_list items
+    :param gmap_client: google maps client, returned by get_maps_client()
+
+    :returns dict: dictionary with name: optimized route list items
+    """
+
     opt_dict = {}
     for name, add_list in add_dict.items():
         origin = add_list[0]
@@ -128,6 +155,16 @@ def optimize_waypoints(add_dict, gmap_client):
 
 
 def process_routes(address_dict, out_file='links.txt'):
+    """
+    Makes clickable google map directions links from address lists;
+     for routes with 12+ addresses, splits into parts of 11 or fewer
+
+    :param address_dict: dictionary of name: route list items
+    :param out_file: string specifying filename for name: link dump
+
+    :returns dict: if out_file is None, get dict with (split) name: route items
+    """
+
     all_routes = {}
     for name, this_route in address_dict.items():
         lenny = len(this_route)
@@ -157,7 +194,9 @@ def process_routes(address_dict, out_file='links.txt'):
         return all_routes
 
 
-def make_directions_link(L, filename=None):
+def make_directions_link(L):
+    "Formats address list as google maps directions link"
+
     base_url = 'https://www.google.com/maps/dir/?api=1&'
     url_dict = {}
     url_dict['origin'] = L[0]
@@ -169,13 +208,16 @@ def make_directions_link(L, filename=None):
 
 
 if __name__ == "__main__":
-    gmc = get_maps_client()
-    service = sheet_service()
+    gmc = get_maps_client()  # google maps client
+    service = sheet_service()  # sheet service object
+    # name: address list items
     add_dict = read_address_sheets(service=service,
                                    gsheet_fname='google_sheet_id.txt',
                                    data_range='A1:J50')
+    # wth optimized waypoints
     opt_dict = optimize_waypoints(add_dict=add_dict,
                                   gmap_client=gmc)
+    # links filename, then make links and write to file
     today = datetime.today()
     links_fname = 'links_' + '_'.join([str(today.day),
                                        str(today.month),
