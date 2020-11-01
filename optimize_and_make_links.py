@@ -75,9 +75,9 @@ def read_address_sheets(service, data_range=None, test_sheet=False):
     config = configparser.ConfigParser()
     config.read('google_sheet_id.txt')
     if test_sheet:
-        sheet_id = config['test']
+        sheet_id = config['test']['sheet_id']
     else:
-        sheet_id = config['real']
+        sheet_id = config['real']['sheet_id']
 
     if data_range is None:
         data_range = 'A1:J100'
@@ -244,8 +244,8 @@ if __name__ == "__main__":
     service = sheet_service()  # sheet service object
     # name: address list items
     add_dict = read_address_sheets(service=service,
-                                   gsheet_fname='google_sheet_id.txt',
-                                   data_range='A1:J50')
+                                   data_range='A1:J50',
+                                   test_sheet=False)
     # wth optimized waypoints
     opt_dict = optimize_waypoints(add_dict=add_dict,
                                   gmap_client=gmc)
