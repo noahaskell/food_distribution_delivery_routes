@@ -1,10 +1,10 @@
 import pickle
 import os
+import configparser
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import googlemaps as gm
-import read_google_sheet as rgs
 from datetime import datetime
 from urllib.parse import urlencode
 
@@ -52,20 +52,32 @@ def sheet_service():
     return service
 
 
-def read_address_sheets(service, gsheet_fname, data_range=None):
+def read_address_sheets(service, data_range=None, test_sheet=False):
     """
     Reads and parses addresses from sheets with titles like "[Name] ~ List"
 
-    :param service: connection to google sheets, returned by sheet_service()
-    :param gsheet_fname: local filename with google spreadsheet id
-    :param data_range: string indicating range of cells of interest
+    Parameters
+    ----------
+    service : google api client resource (returned by sheet_service())
+        connection to google sheets
+    data_range : str
+        indicates ranges of cells of interest (e.g., "A1:J20")
+    test_sheet : bool
+        True if test sheet should be used, else False
 
-    :returns dict: keys = driver names, values = lists of addresses
-                                         [origin, waypoints, destination]
+    Returns
+    -------
+    dict
+        keys = driver names, values = lists of addresses
+        list of addresses = [origin, waypoints, destination]
     """
 
-    with open(gsheet_fname, 'r') as f:
-        sheet_id = f.readline().strip('\n')
+    config = configparser.ConfigParser()
+    config.read('google_sheet_id.txt')
+    if test_sheet:
+        sheet_id = config['test']
+    else:
+        sheet_id = config['real']
 
     if data_range is None:
         data_range = 'A1:J100'
@@ -99,9 +111,15 @@ def make_address_list(gs_list):
     """
     Parses list of lists returned by google sheets api
 
-    :param gs_list: list of lists from google sheets api
+    Parameters
+    ----------
+    gs_list : list
+        list of lists from google sheets api
 
-    :returns list: list with addresses as strings
+    Returns
+    -------
+    list
+        list with addresses as strings
     """
 
     headers = gs_list[0]
@@ -129,10 +147,17 @@ def optimize_waypoints(add_dict, gmap_client):
     """
     Uses google maps api to optimize waypoints for routes
 
-    :param add_dict: dictionary with name: address_list items
-    :param gmap_client: google maps client, returned by get_maps_client()
+    Parameters
+    ----------
+    add_dict : dict
+        dictionary with name: addres_list items
+    gmap_client : google maps client
+        returned by get_maps_client()
 
-    :returns dict: dictionary with name: optimized route list items
+    Returns
+    -------
+    dict
+        dictionary with name: optimized route list items
     """
 
     opt_dict = {}
@@ -159,10 +184,17 @@ def process_routes(address_dict, out_file='links.txt'):
     Makes clickable google map directions links from address lists;
      for routes with 12+ addresses, splits into parts of 11 or fewer
 
-    :param address_dict: dictionary of name: route list items
-    :param out_file: string specifying filename for name: link dump
+    Parameters
+    ----------
+    address_dict : dict
+        dictionary of name: route list items
+    out_file : str
+        string specifying filename for name: link dump
 
-    :returns dict: if out_file is None, get dict with (split) name: route items
+    Returns
+    -------
+    dict
+        if out_file is None, dict with (split) name: route items
     """
 
     all_routes = {}
