@@ -1,105 +1,81 @@
-import pickle
-import os
 import configparser
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
 import googlemaps as gm
 from datetime import datetime
 from urllib.parse import urlencode
+from string import ascii_uppercase as alphabet
 
 config = configparser.ConfigParser()
 config.read('food_dist.cfg')
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+SCOPES = ['https://spreadsheets.google.com/feeds',
+          'https://www.googleapis.com/auth/drive']
 
 
-def sheet_service():
+def get_gsheet(secret='client_secret.json', test_sheet=False):
     """
-    Boilerplate code for connecting to google sheets
+    Gets google spreadsheet interface
 
-    Returns service object
+    Parameters
+    ----------
+    secret : str
+        name of file containing secret keys and whatnot
+    test_sheet : bool
+        if True, gets test sheet title, else real sheet title
+
+    Returns
+    -------
+    gspread.models.Spreadsheet
+        interface for spreadsheet
     """
-    creds = None
-    # The file token.pickle stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+    if test_sheet:
+        sheet_title = config['sheet_name']['test']
+    else:
+        sheet_title = config['sheet_name']['real']
 
-    service = build('sheets', 'v4', credentials=creds)
-
-    return service
+    creds = ServiceAccountCredentials.from_json_keyfile_name(secret, SCOPES)
+    client = gspread.authorize(creds)
+    return client.open(sheet_title)
 
 
-def read_address_sheets(service, data_range=None, test_sheet=False):
+def read_address_sheets(spread_sheet):
     """
     Reads and parses addresses from sheets with titles like "[Name] ~ List"
 
     Parameters
     ----------
-    service : google api client resource (returned by sheet_service())
-        connection to google sheets
-    data_range : str
-        indicates ranges of cells of interest (e.g., "A1:J20")
-    test_sheet : bool
-        True if test sheet should be used, else False
+    spread_sheet : gspread.models.SpreadSheet
+        spreadsheet interface returned by get_gsheet()
 
     Returns
     -------
     dict
-        keys = driver names, values = lists of addresses
-        list of addresses = [origin, waypoints, destination]
+        keys = driver names, values = dicts
+            keys = (worksheet) title, (worksheet) index, add_list, all_values
+                add_list = [origin, waypoints, destination]
+                all_values = list of lists with all cell values from worksheet
     """
-
-    if test_sheet:
-        sheet_id = config['sheet_id']['test']
-    else:
-        sheet_id = config['sheet_id']['real']
-
-    if data_range is None:
-        data_range = 'A1:J100'
-
-    sheet_metadata = (service
-                      .spreadsheets()
-                      .get(spreadsheetId=sheet_id)
-                      .execute())
+    sheet_metadata = spread_sheet.fetch_sheet_metadata()
     sheets = sheet_metadata.get('sheets', '')
-    sheet_id_list = []
+    values_dict = {}
     for sh in sheets:
         props = sh.get('properties')
         title = props.get('title')
+        index = props.get('index')
         if '~ List' in title and 'Self' not in title:
-            sheet_id_list.append(title)
+            name = title.split('~')[0].strip()
+            values_dict[name] = {'index': index}
 
-    sheet = service.spreadsheets()
-    values_dict = {}
-    for title in sheet_id_list:
-        range_t = title + '!' + data_range
-        result = sheet.values().batchGet(spreadsheetId=sheet_id,
-                                         ranges=range_t).execute()
-        add_list_t = make_address_list(result['valueRanges'][0]['values'])
-        name = title.split('~')[0].strip()
-        values_dict[name] = add_list_t
+    for name in values_dict.keys():
+        sheet_idx = values_dict[name]['index']
+        worksheet = spread_sheet.get_worksheet(sheet_idx)
+        values = worksheet.get_all_values()
+        add_list = make_address_list(values)
+        values_dict[name]['add_list'] = add_list
+        values_dict[name]['all_values'] = values
 
-    if test_sheet:
-        return values_dict, result
-    else:
-        return values_dict
+    return values_dict
 
 
 def make_address_list(gs_list):
@@ -147,9 +123,8 @@ def optimize_waypoints(add_dict):
     Parameters
     ----------
     add_dict : dict
-        dictionary with name: addres_list items
-    gmap_client : google maps client
-        returned by get_maps_client()
+        dictionary with name: {title, index, add_list, all_values} items
+        returned by read_address_sheets()
 
     Returns
     -------
@@ -158,7 +133,9 @@ def optimize_waypoints(add_dict):
     """
     gmap_client = gm.Client(key=config['gcloud']['api_key'])
     opt_dict = {}
-    for name, add_list in add_dict.items():
+    for name, v_dict in add_dict.items():
+        add_list = v_dict['add_list']
+        sheet_idx = v_dict['index']
         origin = add_list[0]
         destin = add_list[-1]
         waypts = add_list[1:-1]
@@ -168,12 +145,73 @@ def optimize_waypoints(add_dict):
                                           mode='driving',
                                           optimize_waypoints=True)
         opt_idx = opt_list[0]['waypoint_order']
+        opt_vals = reorder_values(v_dict['all_values'], opt_idx)
         opt_route = [origin]
         for i in opt_idx:
             opt_route.append(add_list[i+1])
         opt_route.append(destin)
-        opt_dict[name] = {'route': opt_route, 'index': opt_idx}
+        opt_dict[name] = {'route': opt_route,
+                          'opt_vals': opt_vals,
+                          'index': sheet_idx}
     return opt_dict
+
+
+def reorder_values(values, idx):
+    """
+    Reorders worksheet values according to optimized indices
+
+    Parameters
+    ----------
+    values : list of lists
+        values from a gsheet worksheet
+    idx : list of ints
+        (possibly) reordered waypoint indices
+
+    Returns
+    -------
+    list of lists
+        cell values in the optimized order for updating worksheet
+    """
+    reord = []
+    n_val = len(idx) + 2
+    for i in range(n_val):
+        if i <= 1:
+            this_old = [x for x in values[i]]
+            reord.append(this_old)
+        else:
+            this_old = [x for x in values[idx[i-2]+2]]
+            reord.append(this_old)
+    if n_val < len(values):
+        for i in range(n_val, len(values)):
+            this_old = [x for x in values[i]]
+            reord.append(this_old)
+    return reord
+
+
+def update_sheets(spread_sheet, opt_dict):
+    """
+    Updates worksheets with optimized route order for printing
+
+    Parameters
+    ----------
+    spread_sheet : gspread.models.Spreadsheet
+        returned by get_gsheet()
+    opt_dict : dict
+        returned by optimize_waypoints()
+    """
+    for name, sub_dict in opt_dict.items():
+        sheet_idx = sub_dict['index']
+        values = sub_dict['opt_vals']
+        n_rows = len(values)
+        n_cols = len(values[0])
+        col_letter = alphabet[n_cols-1]
+        data_range = "A1:" + col_letter + str(n_rows)
+        worksheet = spread_sheet.get_worksheet(sheet_idx)
+        cell_list = worksheet.range(data_range)
+        for cell in cell_list:
+            row, col = cell.row-1, cell.col-1
+            cell.value = values[row][col]
+        worksheet.update_cells(cell_list)
 
 
 def process_routes(address_dict, out_file='links.txt'):
@@ -279,16 +317,17 @@ def make_directions_link_o(L):
 
 
 if __name__ == "__main__":
-    service = sheet_service()  # sheet service object
-    # name: address list items
-    add_dict = read_address_sheets(service=service,
-                                   data_range='A1:J50',
-                                   test_sheet=False)
-    # wth optimized waypoints
-    opt_dict = optimize_waypoints(add_dict=add_dict)
+    # get spread_sheet interface
+    spread_sheet = get_gsheet(test_sheet=True)
+    # get dict of address lists, worksheet values
+    add_dict = read_address_sheets(spread_sheet)
+    # optimize waypoint orders
+    opt_dict = optimize_waypoints(add_dict)
     # links filename, then make links and write to file
     today = datetime.today()
     links_fname = 'links_' + '_'.join([str(today.day),
                                        str(today.month),
                                        str(today.year)]) + '.txt'
     process_routes(opt_dict, links_fname)
+    # update cells in google sheets
+    update_sheets(spread_sheet, opt_dict)
