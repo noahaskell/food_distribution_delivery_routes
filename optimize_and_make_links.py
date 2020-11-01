@@ -1,6 +1,8 @@
 import pickle
 import os
 import configparser
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -8,18 +10,10 @@ import googlemaps as gm
 from datetime import datetime
 from urllib.parse import urlencode
 
+config = configparser.ConfigParser()
+config.read('food_dist.cfg')
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
-
-
-def get_maps_client(key_file='google_cloud_api_key.txt'):
-    """
-    Creates and returns Google Maps client.
-    """
-    with open(key_file, 'r') as f:
-        API_KEY = f.readline().strip('\n')
-
-    return gm.Client(key=API_KEY)
 
 
 def sheet_service():
@@ -72,12 +66,10 @@ def read_address_sheets(service, data_range=None, test_sheet=False):
         list of addresses = [origin, waypoints, destination]
     """
 
-    config = configparser.ConfigParser()
-    config.read('google_sheet_id.txt')
     if test_sheet:
-        sheet_id = config['test']['sheet_id']
+        sheet_id = config['sheet_id']['test']
     else:
-        sheet_id = config['real']['sheet_id']
+        sheet_id = config['sheet_id']['real']
 
     if data_range is None:
         data_range = 'A1:J100'
@@ -148,7 +140,7 @@ def make_address_list(gs_list):
     return add_list
 
 
-def optimize_waypoints(add_dict, gmap_client):
+def optimize_waypoints(add_dict):
     """
     Uses google maps api to optimize waypoints for routes
 
@@ -164,7 +156,7 @@ def optimize_waypoints(add_dict, gmap_client):
     dict
         dictionary with name: optimized route list items
     """
-
+    gmap_client = gm.Client(key=config['gcloud']['api_key'])
     opt_dict = {}
     for name, add_list in add_dict.items():
         origin = add_list[0]
@@ -287,15 +279,13 @@ def make_directions_link_o(L):
 
 
 if __name__ == "__main__":
-    gmc = get_maps_client()  # google maps client
     service = sheet_service()  # sheet service object
     # name: address list items
     add_dict = read_address_sheets(service=service,
                                    data_range='A1:J50',
                                    test_sheet=False)
     # wth optimized waypoints
-    opt_dict = optimize_waypoints(add_dict=add_dict,
-                                  gmap_client=gmc)
+    opt_dict = optimize_waypoints(add_dict=add_dict)
     # links filename, then make links and write to file
     today = datetime.today()
     links_fname = 'links_' + '_'.join([str(today.day),
