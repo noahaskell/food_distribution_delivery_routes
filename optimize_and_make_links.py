@@ -138,6 +138,8 @@ def make_address_list(gs_list):
         zip_code = this_list[zip_idx]
         if 'Wilson' in street and zip_code == '45231':
             city_state = 'Mount Healthy, OH'
+            if 'Avenue' not in street and 'Ave' not in street:
+                street += ' Avenue'
         this_add = ' '.join([street, city_state, zip_code])
         add_list.append(this_add)
         if 'Driver' in this_list[-1]:
@@ -146,7 +148,7 @@ def make_address_list(gs_list):
     return add_list
 
 
-def optimize_waypoints(add_dict, gmap_client, testing=False):
+def optimize_waypoints(add_dict, gmap_client):
     """
     Uses google maps api to optimize waypoints for routes
 
@@ -178,11 +180,8 @@ def optimize_waypoints(add_dict, gmap_client, testing=False):
         for i in opt_idx:
             opt_route.append(add_list[i+1])
         opt_route.append(destin)
-        opt_dict[name] = opt_route
-    if testing:
-        return opt_list
-    else:
-        return opt_dict, opt_idx
+        opt_dict[name] = {'route': opt_route, 'index': opt_idx}
+    return opt_dict
 
 
 def process_routes(address_dict, out_file='links.txt'):
@@ -204,7 +203,7 @@ def process_routes(address_dict, out_file='links.txt'):
 
     all_routes = {}
     for name, this_route in address_dict.items():
-        link = make_directions_link(this_route)
+        link = make_directions_link(this_route['route'])
         all_routes[name] = link
 
     if out_file is not None:
