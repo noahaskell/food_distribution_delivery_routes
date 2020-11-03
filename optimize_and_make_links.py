@@ -246,53 +246,6 @@ def process_routes(address_dict, out_file='links.txt'):
         return all_routes
 
 
-def process_routes_o(address_dict, out_file='links.txt'):
-    """
-    Makes clickable google map directions links from address lists;
-     for routes with 12+ addresses, splits into parts of 11 or fewer
-
-    Parameters
-    ----------
-    address_dict : dict
-        dictionary of name: route list items
-    out_file : str
-        string specifying filename for name: link dump
-
-    Returns
-    -------
-    dict
-        if out_file is None, dict with (split) name: route items
-    """
-
-    all_routes = {}
-    for name, this_route in address_dict.items():
-        lenny = len(this_route)
-        if lenny <= 11:
-            link = make_directions_link_o(this_route)
-            all_routes[name] = link
-        else:
-            a = 0
-            b = min(a+11, lenny)
-            ri = 1
-            while a < lenny and b <= lenny:
-                route_sublist = this_route[a:b]
-                if len(route_sublist) > 0:
-                    link = make_directions_link_o(route_sublist)
-                    all_routes[name + ' ' + str(ri)] = link
-                a += 10
-                b = min(a+11, lenny)
-                ri += 1
-
-    if out_file is not None:
-        with open(out_file, 'w') as f:
-            for k, v in all_routes.items():
-                f.write(k + '\n')
-                f.write(v + '\n')
-                f.write('\n')
-    else:
-        return all_routes
-
-
 def make_directions_link(L):
     "Formats address list as google maps directions link"
 
@@ -301,19 +254,6 @@ def make_directions_link(L):
         url += '/' + address.replace(' ', '+')
 
     return url
-
-
-def make_directions_link_o(L):
-    "Formats address list as google maps directions link"
-
-    base_url = 'https://www.google.com/maps/dir/?api=1&'
-    url_dict = {}
-    url_dict['origin'] = L[0]
-    url_dict['destination'] = L[-1]
-    url_dict['waypoints'] = '|'.join(L[1:-1])
-    url_dict['travelmode'] = 'driving'
-
-    return base_url + urlencode(url_dict)
 
 
 if __name__ == "__main__":
