@@ -9,9 +9,6 @@ from string import ascii_uppercase as alphabet
 config = configparser.ConfigParser()
 config.read('food_dist.cfg')
 
-SCOPES = ['https://spreadsheets.google.com/feeds',
-          'https://www.googleapis.com/auth/drive']
-
 
 def get_gsheet(secret='client_secret.json', test_sheet=False):
     """
@@ -34,7 +31,9 @@ def get_gsheet(secret='client_secret.json', test_sheet=False):
     else:
         sheet_title = config['sheet_name']['real']
 
-    creds = ServiceAccountCredentials.from_json_keyfile_name(secret, SCOPES)
+    scopes = ['https://spreadsheets.google.com/feeds',
+              'https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(secret, scopes)
     client = gspread.authorize(creds)
     return client.open(sheet_title)
 
