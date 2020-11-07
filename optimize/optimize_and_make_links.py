@@ -3,8 +3,9 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import googlemaps as gm
 from datetime import datetime
-from urllib.parse import urlencode
 from string import ascii_uppercase as alphabet
+from copy import deepcopy
+from time import sleep
 
 config = configparser.ConfigParser()
 config.read('food_dist.cfg')
@@ -150,7 +151,7 @@ def optimize_waypoints(add_dict):
             opt_route.append(add_list[i+1])
         opt_route.append(destin)
         opt_dict[name] = {'route': opt_route,
-                          'opt_vals': opt_vals,
+                          'all_values': opt_vals,
                           'index': sheet_idx}
     return opt_dict
 
@@ -187,30 +188,81 @@ def reorder_values(values, idx):
     return reord
 
 
-def update_sheets(spread_sheet, opt_dict):
+def update_sheets(spread_sheet, val_dict, sleep_time=0.1):
     """
-    Updates worksheets with optimized route order for printing
+    Updates worksheets with reordered values
+     - optimized route order for printing
+     - original values for resetting test spreadsheet
 
     Parameters
     ----------
     spread_sheet : gspread.models.Spreadsheet
         returned by get_gsheet()
-    opt_dict : dict
+    val_dict : dict
+        dictionary structured like that
         returned by optimize_waypoints()
     """
-    for name, sub_dict in opt_dict.items():
+    titles = [t.title for t in spread_sheet.worksheets()]
+    for name, sub_dict in val_dict.items():
+        title_t = name + ' ~ List'
         sheet_idx = sub_dict['index']
-        values = sub_dict['opt_vals']
+        values = sub_dict['all_values']
         n_rows = len(values)
         n_cols = len(values[0])
         col_letter = alphabet[n_cols-1]
         data_range = "A1:" + col_letter + str(n_rows)
-        worksheet = spread_sheet.get_worksheet(sheet_idx)
+        if title_t in titles:
+            worksheet = spread_sheet.worksheet(title_t)
+        else:
+            worksheet = spread_sheet.add_worksheet(title_t,
+                                                   rows=n_rows,
+                                                   cols=n_cols,
+                                                   index=sheet_idx)
         cell_list = worksheet.range(data_range)
         for cell in cell_list:
             row, col = cell.row-1, cell.col-1
             cell.value = values[row][col]
         worksheet.update_cells(cell_list)
+        sleep(sleep_time)
+
+
+def reset_test_sheet(update=True):
+    """
+    Resets worksheets in test spreadsheet
+    """
+    sheet = get_gsheet(test_sheet=True)
+    work = sheet.worksheet('Everything')
+    values = work.get_all_values()
+    header = values[0]
+    origin = ['Tikkun Farm',
+              'tikkunfarm@gmail.com',
+              '513-706-1519',
+              '7941 Elizabeth Street',
+              '',
+              'Cincinnati, OH',
+              '45231',
+              '',
+              '',
+              '']
+    idx = 1
+    reset_dict = {}
+    temp_vals = [header, origin]
+    for row in values[1:]:
+        temp_vals.append(row)
+        if 'Driver' in row[-1]:
+            name_list = row[0].split(' ')
+            if len(name_list) > 1:
+                name = name_list[0] + ' ' + name_list[1][0] + '.'
+            else:
+                name = name_list[0]
+            reset_dict[name] = {'index': idx,
+                                'all_values': deepcopy(temp_vals)}
+            temp_vals = [header, origin]
+            idx += 1
+    if update:
+        update_sheets(sheet, reset_dict, sleep_time=0.1)
+    else:
+        return reset_dict
 
 
 def process_routes(address_dict, out_file='links.txt'):
@@ -269,4 +321,4 @@ if __name__ == "__main__":
                                        str(today.year)]) + '.txt'
     process_routes(opt_dict, links_fname)
     # update cells in google sheets
-    update_sheets(spread_sheet, opt_dict)
+    update_sheets(spread_sheet, opt_dict, sleep_time=0.05)
