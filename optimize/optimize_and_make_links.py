@@ -226,7 +226,7 @@ def update_sheets(spread_sheet, val_dict, sleep_time=0.1):
         sleep(sleep_time)
 
 
-def reset_test_sheet(update=True):
+def reset_test_sheet(n=5, update=True):
     """
     Resets worksheets in test spreadsheet
     """
@@ -245,6 +245,7 @@ def reset_test_sheet(update=True):
               '',
               '']
     idx = 1
+    total = 0
     reset_dict = {}
     temp_vals = [header, origin]
     for row in values[1:]:
@@ -259,6 +260,9 @@ def reset_test_sheet(update=True):
                                 'all_values': deepcopy(temp_vals)}
             temp_vals = [header, origin]
             idx += 1
+            total += 1
+        if total == n:
+            break
     if update:
         update_sheets(sheet, reset_dict, sleep_time=0.1)
     else:
