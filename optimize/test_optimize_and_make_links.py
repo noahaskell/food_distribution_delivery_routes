@@ -1,24 +1,38 @@
 import optimize_and_make_links as oml
 
+SHEET = oml.get_gsheet(test_sheet=True)
 
-# not entirely sure how best to test this function...
-# def test_reset_test_sheet():
-#    reset_dict = oml.reset_test_sheet(update=False)
 
-sheet = oml.get_gsheet(test_sheet=True)
+def make_add_dict():
+    add_list = ['1530 Haight St San Francisco, CA 94117',
+                '498 Sanchez St San Francisco, CA 94114',
+                '4416 18th St San Francisco, CA 94114',
+                '2288 Mission St San Francisco, CA 94110']
+    names = ['Haight St Market', 'La Marais', 'Mama Jis', 'Taqueria Cancun']
+    types = ['grocery', 'cafe', 'restaurant', 'restaurant']
+    all_vals = [['Name', 'Address', 'Type']]
+    for i in range(4):
+        all_vals.append([names[i], add_list[i], types[i]])
+    add_dict = {'Ronald': {'index': 0,
+                           'add_list': add_list,
+                           'all_values': all_vals}}
+    return add_dict
+
+
+ADD_DICT = make_add_dict()
 
 
 def test_get_gsheet():
-    assert sheet.title == 'test_for_reordering_address_lists', \
+    assert SHEET.title == 'test_for_reordering_address_lists', \
         "sheet title incorrect"
-    assert isinstance(sheet, oml.gspread.models.Spreadsheet), \
+    assert isinstance(SHEET, oml.gspread.models.Spreadsheet), \
         "wrong gsheet type"
-    values = sheet.worksheet("Everything").get_all_values()
+    values = SHEET.worksheet("Everything").get_all_values()
     assert len(values) == 298, "wrong number of values in Everything sheet"
 
 
 def test_read_address_sheets():
-    v_dict = oml.read_address_sheets(sheet)
+    v_dict = oml.read_address_sheets(SHEET)
     tikkun_add = '7941 Elizabeth Street Cincinnati, OH 45231'
     check_list = [sd['add_list'][0] == tikkun_add for sd in v_dict.values()]
     assert all(check_list), "wrong first address in at least one address list"
@@ -34,28 +48,100 @@ def test_make_address_list():
         "at least one non-string in address list"
     assert add_list[0] == "123 Fake St. Los Angeles, CA 12345", \
         "incorrect first address in fake address list"
+    assert add_list[1] == "5432 Wall St. New York, NY 54321", \
+        "incorrect second address in fake address list"
+    assert add_list[2] == "1600 Penn Ave. Washington, DC 55555", \
+        "incorrect third address in fake address list"
 
 
 def test_optimize_waypoints():
-    add_list = ['1530 Haight St San Francisco, CA 94117',
-                '498 Sanchez St San Francisco, CA 94114',
-                '4416 18th St San Francisco, CA 94114',
-                '2288 Mission St San Francisco, CA 94110']
-    names = ['Haight St Market', 'La Marais', 'Mama Jis', 'Taqueria Cancun']
-    types = ['grocery', 'cafe', 'restaurant', 'restaurant']
-    all_vals = [['Name', 'Address', 'Type']]
-    for i in range(4):
-        all_vals.append([names[i], add_list[i], types[i]])
-    add_dict = {'Ronald': {'index': 0,
-                           'add_list': add_list,
-                           'all_values': all_vals}}
-    opt_dict = oml.optimize_waypoints(add_dict)
+    opt_dict = oml.optimize_waypoints(ADD_DICT)
+    add_list = ADD_DICT['Ronald']['add_list']
+    all_vals = ADD_DICT['Ronald']['all_values']
     sub_dict = opt_dict['Ronald']
-    assert sub_dict['route'][1] == add_list[2], \
+    assert sub_dict['add_list'][1] == add_list[2], \
         "first waypoint should be second waypoint from original list"
-    assert sub_dict['route'][2] == add_list[1], \
+    assert sub_dict['add_list'][2] == add_list[1], \
         "second waypoint should be first waypoint from original list"
     assert sub_dict['all_values'][2] == all_vals[3], \
         "all_values incorrectly reordered by optimized waypoint order"
     assert sub_dict['all_values'][3] == all_vals[2], \
         "all_values incorrectly reordered by optimized waypoint order"
+
+
+def test_reorder_values():
+    fake_vals = [['a', 0],
+                 ['b', 1],
+                 ['d', 3],
+                 ['c', 2],
+                 ['e', 4]]
+    fake_idx = [1, 0]
+    reordered = oml.reorder_values(fake_vals, fake_idx)
+    temp = reordered[2]
+    assert temp[0] == 'c' and temp[1] == 2, \
+        "incorrect first 'waypoint'"
+    temp = reordered[3]
+    assert temp[0] == 'd' and temp[1] == 3, \
+        "incorrect second 'waypoint'"
+
+
+def test_update_sheets():
+    oml.update_sheets(SHEET, ADD_DICT)
+    all_vals = ADD_DICT['Ronald']['all_values']
+    sheet_u = SHEET.worksheet('Ronald ~ List')
+    values = sheet_u.get_all_values()
+    check_list = []
+    for i, row in enumerate(values):
+        for j, val in enumerate(row):
+            check_list.append(val == all_vals[i][j])
+    assert all(check_list), "at least one updated value incorrect"
+    sheet_t = SHEET.worksheet('Ronald ~ List')
+    SHEET.del_worksheet(sheet_t)
+
+
+def test_process_routes():
+    route_dict = oml.process_routes(ADD_DICT, out_file=None)
+    add_list = ADD_DICT['Ronald']['add_list']
+    link = route_dict['Ronald']
+    check_list = []
+    for row in add_list:
+        check_list.append(row.replace(' ', '+') in link)
+    assert all(check_list), "at least one address missing from link"
+
+
+def test_make_directions_link():
+    add_list = ADD_DICT['Ronald']['add_list']
+    link = oml.make_directions_link(add_list)
+    check_list = []
+    for row in add_list:
+        check_list.append(row.replace(' ', '+') in link)
+    assert all(check_list), "at least one address missing from link"
+
+
+def test_reset_test_sheet():
+    N = 1
+    sheet_e = SHEET.worksheet('Everything')
+    values = sheet_e.get_all_values()
+    header = values[0]
+    origin = ['Tikkun Farm',
+              'tikkunfarm@gmail.com',
+              '513-706-1519',
+              '7941 Elizabeth Street',
+              '',
+              'Cincinnati, OH',
+              '45231',
+              '',
+              '',
+              '']
+    temp_vals = [header, origin]
+    for row in values[1:6]:
+        temp_vals.append(row)
+    name = 'Amanda G.'
+    oml.reset_test_sheet(n=N)
+    sheet_a = SHEET.worksheet(name + ' ~ List')
+    upd_vals = sheet_a.get_all_values()
+    check_list = []
+    for i, row in enumerate(upd_vals):
+        for j, val in enumerate(row):
+            check_list.append(val == temp_vals[i][j])
+    assert all(check_list), "at least one updated value incorrect"

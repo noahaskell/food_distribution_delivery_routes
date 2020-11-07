@@ -150,7 +150,7 @@ def optimize_waypoints(add_dict):
         for i in opt_idx:
             opt_route.append(add_list[i+1])
         opt_route.append(destin)
-        opt_dict[name] = {'route': opt_route,
+        opt_dict[name] = {'add_list': opt_route,
                           'all_values': opt_vals,
                           'index': sheet_idx}
     return opt_dict
@@ -261,7 +261,7 @@ def reset_test_sheet(n=5, update=True):
             temp_vals = [header, origin]
             idx += 1
             total += 1
-        if total == n:
+        if total >= n:
             break
     if update:
         update_sheets(sheet, reset_dict, sleep_time=0.1)
@@ -288,7 +288,7 @@ def process_routes(address_dict, out_file='links.txt'):
 
     all_routes = {}
     for name, this_route in address_dict.items():
-        link = make_directions_link(this_route['route'])
+        link = make_directions_link(this_route['add_list'])
         all_routes[name] = link
 
     if out_file is not None:
