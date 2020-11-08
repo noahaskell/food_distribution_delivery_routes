@@ -39,7 +39,7 @@ def get_gsheet(secret='client_secret.json', test_sheet=False):
     return client.open(sheet_title)
 
 
-def read_address_sheets(spread_sheet):
+def read_address_sheets(spread_sheet, sleep_time=0.1):
     """
     Reads and parses addresses from sheets with titles like "[Name] ~ List"
 
@@ -47,6 +47,9 @@ def read_address_sheets(spread_sheet):
     ----------
     spread_sheet : gspread.models.SpreadSheet
         spreadsheet interface returned by get_gsheet()
+    sleep_time : float
+        duration in seconds for pausing to avoid overloading
+        the sheets API requests quotas
 
     Returns
     -------
@@ -62,8 +65,9 @@ def read_address_sheets(spread_sheet):
     for sh in sheets:
         props = sh.get('properties')
         title = props.get('title')
+        title_l = title.lower()
         index = props.get('index')
-        if '~ List' in title and 'Self' not in title:
+        if '~' in title and 'list' in title_l and 'self' not in title_l:
             name = title.split('~')[0].strip()
             values_dict[name] = {'index': index}
 
@@ -74,6 +78,7 @@ def read_address_sheets(spread_sheet):
         add_list = make_address_list(values)
         values_dict[name]['add_list'] = add_list
         values_dict[name]['all_values'] = values
+        sleep(sleep_time)
 
     return values_dict
 
@@ -116,7 +121,7 @@ def make_address_list(gs_list):
     return add_list
 
 
-def optimize_waypoints(add_dict):
+def optimize_waypoints(add_dict, sleep_time=0.1):
     """
     Uses google maps api to optimize waypoints for routes
 
@@ -125,6 +130,9 @@ def optimize_waypoints(add_dict):
     add_dict : dict
         dictionary with name: {title, index, add_list, all_values} items
         returned by read_address_sheets()
+    sleep_time : float
+        duration in seconds to pause in between maps client requests
+        to avoid API quotas
 
     Returns
     -------
@@ -201,6 +209,9 @@ def update_sheets(spread_sheet, val_dict, sleep_time=0.1):
     val_dict : dict
         dictionary structured like that
         returned by optimize_waypoints()
+    sleep_time : float
+        duration in seconds for pausing to avoid overloading
+        the sheets API request quotas
     """
     titles = [t.title for t in spread_sheet.worksheets()]
     for name, sub_dict in val_dict.items():
@@ -223,6 +234,7 @@ def update_sheets(spread_sheet, val_dict, sleep_time=0.1):
             row, col = cell.row-1, cell.col-1
             cell.value = values[row][col]
         worksheet.update_cells(cell_list)
+        worksheet.format(data_range, {"textFormat": {"fontSize": 12}})
         sleep(sleep_time)
 
 
@@ -313,9 +325,9 @@ def make_directions_link(L):
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    spread_sheet = get_gsheet(test_sheet=True)
+    spread_sheet = get_gsheet(test_sheet=False)
     # get dict of address lists, worksheet values
-    add_dict = read_address_sheets(spread_sheet)
+    add_dict = read_address_sheets(spread_sheet, sleep_time=0.25)
     # optimize waypoint orders
     opt_dict = optimize_waypoints(add_dict)
     # links filename, then make links and write to file
@@ -325,4 +337,4 @@ if __name__ == "__main__":
                                        str(today.year)]) + '.txt'
     process_routes(opt_dict, links_fname)
     # update cells in google sheets
-    update_sheets(spread_sheet, opt_dict, sleep_time=0.05)
+    update_sheets(spread_sheet, opt_dict, sleep_time=0.25)
