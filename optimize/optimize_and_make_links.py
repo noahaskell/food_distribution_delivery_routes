@@ -1,5 +1,6 @@
 import configparser
 import gspread
+import gspread_formatting as gsf
 from oauth2client.service_account import ServiceAccountCredentials
 import googlemaps as gm
 from datetime import datetime
@@ -318,7 +319,6 @@ def update_sheets(spread_sheet, val_dict, sleep_time=0.1):
             row, col = cell.row-1, cell.col-1
             cell.value = values[row][col]
         worksheet.update_cells(cell_list)
-        worksheet.format(data_range, {"textFormat": {"fontSize": 12}})
         sleep(sleep_time)
 
 
@@ -364,6 +364,57 @@ def make_directions_link(L):
     return url
 
 
+def format_address_sheets(spread_sheet, sleep_time=0.1):
+    """
+    Formats address list sheets for printing
+    """
+    metadata = spread_sheet.fetch_sheet_metadata()
+    sheets = metadata.get('sheets', '')
+    all_fmt = gsf.cellFormat(
+        textFormat=gsf.textFormat(fontSize=12)
+    )
+    head_fmt = gsf.cellFormat(
+        textFormat=gsf.textFormat(bold=True)
+    )
+    diet_fmt = gsf.cellFormat(
+        horizontalAlignment='RIGHT'
+    )
+    num_fmt = gsf.cellFormat(
+        horizontalAlignment='LEFT'
+    )
+    note_fmt = gsf.cellFormat(
+        wrapStrategy='WRAP',
+        textFormat=gsf.textFormat(fontSize=10)
+    )
+    for sh in sheets:
+        props = sh.get('properties')
+        title = props.get('title')
+        if '~' in title and 'list' in title.lower():
+            worksheet = spread_sheet.worksheet(title)
+            values = worksheet.get_all_values()
+            headers = values[0]
+            diet_idx = headers.index('Dietary')
+            num_idx = headers.index('1 or 2')
+            n_rows = len(values)
+            n_cols = len(values[0])
+            n_col_l = alphabet[n_cols-1]
+            diet_l = alphabet[diet_idx]
+            num_l = alphabet[num_idx]
+            gsf.format_cell_ranges(
+                worksheet,
+                [("A1:" + n_col_l + str(n_rows), all_fmt),
+                 ("A1:" + n_col_l + "1", head_fmt),
+                 (diet_l + "2:" + diet_l + str(n_rows), diet_fmt),
+                 (num_l + "2:" + num_l + str(n_rows), num_fmt),
+                 (n_col_l + "2:" + n_col_l + str(n_rows-1), note_fmt)]
+            )
+            widths = [150, 120, 120, 180, 90, 120, 70, 60, 50, 200]
+            for i, w in enumerate(widths):
+                letter = alphabet[i]
+                gsf.set_column_width(worksheet, letter, w)
+        sleep(sleep_time)
+
+
 if __name__ == "__main__":
     # get spread_sheet interface
     spread_sheet = get_gsheet(test_sheet=True)
@@ -379,3 +430,5 @@ if __name__ == "__main__":
     process_routes(opt_dict, links_fname)
     # update cells in google sheets
     update_sheets(spread_sheet, opt_dict, sleep_time=0.25)
+    # format address sheets for printing
+    format_address_sheets(spread_sheet, sleep_time=0.25)
