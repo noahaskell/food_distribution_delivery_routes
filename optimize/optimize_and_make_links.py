@@ -11,7 +11,7 @@ config = configparser.ConfigParser()
 config.read('food_dist.cfg')
 
 
-def get_gsheet(secret='client_secret.json', test_sheet=False):
+def get_gsheet(secret='client_secret.json', test_sheet=True):
     """
     Gets google spreadsheet interface
 
@@ -325,7 +325,7 @@ def make_directions_link(L):
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    spread_sheet = get_gsheet(test_sheet=False)
+    spread_sheet = get_gsheet(test_sheet=True)
     # get dict of address lists, worksheet values
     add_dict = read_address_sheets(spread_sheet, sleep_time=0.25)
     # optimize waypoint orders
