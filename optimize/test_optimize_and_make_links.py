@@ -28,7 +28,7 @@ def test_get_gsheet():
     assert isinstance(SHEET, oml.gspread.models.Spreadsheet), \
         "wrong gsheet type"
     values = SHEET.worksheet("Everything").get_all_values()
-    assert len(values) == 298, "wrong number of values in Everything sheet"
+    assert len(values) == 320, "wrong number of values in Everything sheet"
 
 
 def test_read_address_sheets():
