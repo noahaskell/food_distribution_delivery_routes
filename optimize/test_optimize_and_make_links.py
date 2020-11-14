@@ -124,32 +124,3 @@ def test_make_directions_link():
     for row in add_list:
         check_list.append(row.replace(' ', '+') in link)
     assert all(check_list), "at least one address missing from link"
-
-
-def test_reset_test_sheet():
-    N = 1
-    sheet_e = SHEET.worksheet('Everything')
-    values = sheet_e.get_all_values()
-    header = values[0]
-    origin = ['Tikkun Farm',
-              'tikkunfarm@gmail.com',
-              '513-706-1519',
-              '7941 Elizabeth Street',
-              '',
-              'Cincinnati, OH',
-              '45231',
-              '',
-              '',
-              '']
-    temp_vals = [header, origin]
-    for row in values[1:6]:
-        temp_vals.append(row)
-    name = 'Amanda G.'
-    oml.reset_test_sheet(n=N)
-    sheet_a = SHEET.worksheet(name + ' ~ List')
-    upd_vals = sheet_a.get_all_values()
-    check_list = []
-    for i, row in enumerate(upd_vals):
-        for j, val in enumerate(row):
-            check_list.append(val == temp_vals[i][j])
-    assert all(check_list), "at least one updated value incorrect"

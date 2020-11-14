@@ -322,49 +322,6 @@ def update_sheets(spread_sheet, val_dict, sleep_time=0.1):
         sleep(sleep_time)
 
 
-def reset_test_sheet(n=5, update=True):
-    """
-    Resets worksheets in test spreadsheet
-    """
-    sheet = get_gsheet(test_sheet=True)
-    work = sheet.worksheet('Everything')
-    values = work.get_all_values()
-    header = values[0]
-    origin = ['Tikkun Farm',
-              'tikkunfarm@gmail.com',
-              '513-706-1519',
-              '7941 Elizabeth Street',
-              '',
-              'Cincinnati, OH',
-              '45231',
-              '',
-              '',
-              '']
-    idx = 1
-    total = 0
-    reset_dict = {}
-    temp_vals = [header, origin]
-    for row in values[1:]:
-        temp_vals.append(row)
-        if 'Driver' in row[-1]:
-            name_list = row[0].split(' ')
-            if len(name_list) > 1:
-                name = name_list[0] + ' ' + name_list[1][0] + '.'
-            else:
-                name = name_list[0]
-            reset_dict[name] = {'index': idx,
-                                'all_values': deepcopy(temp_vals)}
-            temp_vals = [header, origin]
-            idx += 1
-            total += 1
-        if total >= n:
-            break
-    if update:
-        update_sheets(sheet, reset_dict, sleep_time=0.1)
-    else:
-        return reset_dict
-
-
 def process_routes(address_dict, out_file='links.txt'):
     """
     Makes clickable google map directions links from address lists
