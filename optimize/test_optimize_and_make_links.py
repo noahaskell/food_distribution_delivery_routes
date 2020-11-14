@@ -38,6 +38,14 @@ def test_read_address_sheets():
     assert all(check_list), "wrong first address in at least one address list"
 
 
+def test_make_address_sheets():
+    oml.make_address_sheets(SHEET, test_sheet=True)
+    vals = SHEET.worksheet('Beth M. ~ List').get_all_values()
+    assert vals[2][0] == 'Destiny Watson', "1st waypoint name wrong"
+    assert vals[4][3] == '1179 Madeleine Circle', "3rd waypoint address wrong"
+    assert vals[8][7] == 'Meat', "7th dietary restriction wrong"
+
+
 def test_make_address_list():
     fake_glist = [['X', 'Street address', 'City, State', 'Zip code', 'Y'],
                   ['-', '123 Fake St.', 'Los Angeles, CA', '12345', '-'],

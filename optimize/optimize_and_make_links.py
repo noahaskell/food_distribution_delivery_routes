@@ -39,6 +39,90 @@ def get_gsheet(secret='client_secret.json', test_sheet=True):
     return client.open(sheet_title)
 
 
+def make_address_sheets(spread_sheet, test_sheet=True, sleep_time=0.1):
+    """
+    Reads in main sheet (form responses), pulls relevant columns
+    grouped by driver, creates driver-specific address sheets
+
+    Parameters
+    ----------
+    spread_sheet : gspread.models.SpreadSheet
+        spreadsheet interface returned by get_gsheet()
+    sleep_time : float
+        duration in seconds for pausing to avoid overloading
+        the sheets API requests quota
+    test_sheet : bool
+        use test_for_reordering_address_lists or the real sheet
+    """
+    # needed cols
+    # Name, Email address, Phone number, Street address, Apt / Unit #,
+    # City, State; Zip code, Dietary, 1 or 2, notes
+    #  1 or 2 -- transform from number of family members
+    if test_sheet:
+        sheet_name = "Everything"
+    else:
+        sheet_name = "Form Responses 1"
+    all_values = spread_sheet.worksheet(sheet_name).get_all_values()
+    headers = all_values[0]
+    cols = ['Name', 'Email address', 'Phone number', 'Street address',
+            'Apt / Unit #', 'City, State', 'Zip code', 'Dietary needs?',
+            'Number of people in your household?', 'Dietary restrictions...']
+    indices = [headers.index(c) for c in cols]
+    driver_idx = headers.index('Driver')
+    day_idx = [i for i, s in enumerate(headers) if 'Are you able' in s][0]
+    new_head = ['Name', 'Email address', 'Phone number',
+                'Street address', 'Apt / Unit #', 'City, State',
+                'Zip code', 'Dietary', '1 or 2', '']
+    origin = ['Tikkun Farm',
+              'tikkunfarm@gmail.com',
+              '513-706-1519',
+              '7941 Elizabeth Street',
+              '',
+              'Cincinnati, OH',
+              '45231',
+              '',
+              '',
+              '']
+
+    # construct address lists
+    add_dict = {}
+    this_driver = all_values[1][driver_idx]
+    add_list = [new_head, origin]
+    idx = 1
+    for row in all_values[1:]:
+        temp_list = [row[j] for j in indices]
+        if int(temp_list[-2]) > 6:
+            temp_list[-2] = 'x2'
+        else:
+            temp_list[-2] = 'x1'
+        if this_driver == row[driver_idx]:
+            add_list.append(temp_list)
+            day_driver = row[day_idx]
+        else:
+            add_list[-1][-1] = day_driver
+            add_dict[this_driver] = {'all_values': add_list,
+                                     'index': idx}
+            idx += 1
+            this_driver = row[driver_idx]
+            add_list = [new_head, origin, temp_list]
+        if test_sheet:
+            if len(add_dict) > 5:
+                break
+
+    # get rid of old address list sheets
+    metadata = spread_sheet.fetch_sheet_metadata()
+    sheets = metadata.get('sheets', '')
+    for sh in sheets:
+        props = sh.get('properties')
+        title = props.get('title')
+        if '~' in title and 'list' in title.lower():
+            worksheet = spread_sheet.worksheet(title)
+            spread_sheet.del_worksheet(worksheet)
+
+    # make new address list sheets
+    update_sheets(spread_sheet, add_dict, sleep_time=sleep_time)
+
+
 def read_address_sheets(spread_sheet, sleep_time=0.1):
     """
     Reads and parses addresses from sheets with titles like "[Name] ~ List"
