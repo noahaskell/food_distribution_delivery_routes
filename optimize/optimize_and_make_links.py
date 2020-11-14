@@ -249,6 +249,7 @@ def optimize_waypoints(add_dict, sleep_time=0.1):
     return opt_dict
 
 
+# NOTE double check that notes column gets reordered correctly
 def reorder_values(values, idx):
     """
     Reorders worksheet values according to optimized indices
@@ -417,7 +418,10 @@ def format_address_sheets(spread_sheet, sleep_time=0.1):
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    spread_sheet = get_gsheet(test_sheet=True)
+    testing = True
+    spread_sheet = get_gsheet(test_sheet=testing)
+    # make address sheets
+    make_address_sheets(spread_sheet, test_sheet=testing)
     # get dict of address lists, worksheet values
     add_dict = read_address_sheets(spread_sheet, sleep_time=0.25)
     # optimize waypoint orders
