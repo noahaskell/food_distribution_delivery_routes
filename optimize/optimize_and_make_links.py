@@ -361,17 +361,40 @@ def update_sheets(spread_sheet, val_dict,
         data_range = "A1:" + col_letter + str(n_rows)
         if title_t in titles:
             worksheet = spread_sheet.worksheet(title_t)
+        elif isinstance(template, gspread.models.Worksheet):
+            worksheet = spread_sheet.duplicate_sheet(
+                source_sheet_id=template.id,
+                insert_sheet_index=sheet_idx,
+                new_sheet_name=title_t
+            )
         else:
-            worksheet = spread_sheet.add_worksheet(title_t,
-                                                   rows=n_rows,
-                                                   cols=n_cols,
-                                                   index=sheet_idx)
-        cell_list = worksheet.range(data_range)
-        for cell in cell_list:
-            row, col = cell.row-1, cell.col-1
-            cell.value = values[row][col]
-        worksheet.update_cells(cell_list)
+            worksheet = spread_sheet.add_worksheet(
+                title=title_t,
+                rows=n_rows,
+                cols=n_cols,
+                index=sheet_idx
+            )
+        update_sheet(worksheet, values, data_range)
         sleep(sleep_time)
+
+
+def update_sheet(worksheet, values, data_range):
+    """
+    Updates values in a single worksheet
+
+    Parameters
+    ----------
+    worksheet : gspread.models.Worksheet
+    values : list of lists
+        each nested list contains values for columns
+    data_range : str
+        string indicating cell range, e.g., "A1:J10", "A1:D1"
+    """
+    cell_list = worksheet.range(data_range)
+    for cell in cell_list:
+        row, col = cell.row-1, cell.col-1
+        cell.value = values[row][col]
+    worksheet.update_cells(cell_list)
 
 
 def process_routes(address_dict, out_file='links.txt'):
@@ -484,6 +507,4 @@ if __name__ == "__main__":
                                        str(today.year)]) + '.txt'
     process_routes(opt_dict, links_fname)
     # update cells in google sheets
-    update_sheets(spread_sheet, opt_dict, sleep_time=0.25)
-    # format address sheets for printing
-    format_address_sheets(spread_sheet, sleep_time=0.25)
+    update_sheets(spread_sheet, opt_dict, sleep_time=sleep_time)

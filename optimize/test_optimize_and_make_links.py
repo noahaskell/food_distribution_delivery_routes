@@ -112,8 +112,24 @@ def test_update_sheets():
         for j, val in enumerate(row):
             check_list.append(val == all_vals[i][j])
     assert all(check_list), "at least one updated value incorrect"
-    sheet_t = SHEET.worksheet('Ronald ~ List')
-    SHEET.del_worksheet(sheet_t)
+    SHEET.del_worksheet(sheet_u)
+
+
+def test_update_sheet():
+    worksheet = SHEET.add_worksheet(
+        title='test_update',
+        rows=5, cols=3
+    )
+    all_vals = ADD_DICT['Ronald']['all_values']
+    drange = "A1:C5"
+    oml.update_sheet(worksheet, all_vals, drange)
+    values = worksheet.get_all_values()
+    check_list = []
+    for i, row in enumerate(values):
+        for j, val in enumerate(row):
+            check_list.append(val == all_vals[i][j])
+    assert all(check_list), "at least one updated value incorrect"
+    SHEET.del_worksheet(worksheet)
 
 
 def test_process_routes():
