@@ -5,7 +5,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 import googlemaps as gm
 from datetime import datetime
 from string import ascii_uppercase as alphabet
-from copy import deepcopy
 from time import sleep
 
 config = configparser.ConfigParser()
