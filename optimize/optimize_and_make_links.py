@@ -82,17 +82,19 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
     sleep_time : float
         duration in seconds for pausing to avoid overloading
         the sheets API requests quota
-    test_sheet : bool
-        use test_for_reordering_address_lists or the real sheet
     """
     # needed cols
     # Name, Email address, Phone number, Street address, Apt / Unit #,
     # City, State; Zip code, Dietary, 1 or 2, notes
     #  1 or 2 -- transform from number of family members
-    if test_sheet:
+    if spread_sheet.title == 'test_for_reordering_address_lists':
         sheet_name = "Everything"
-    else:
+        test_sheet = True
+    elif spread_sheet.title == '2020 Spring ~ Crock-Pot Dinner (Responses)':
         sheet_name = "Form Responses 1"
+        test_sheet = False
+    else:
+        raise ValueError('Wrong spread_sheet, dude.')
     all_values = spread_sheet.worksheet(sheet_name).get_all_values()
     headers = all_values[0]
     cols = ['Name', 'Email address', 'Phone number', 'Street address',
