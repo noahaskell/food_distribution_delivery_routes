@@ -31,19 +31,28 @@ def test_get_gsheet():
     assert len(values) == 320, "wrong number of values in Everything sheet"
 
 
+def test_make_list_template():
+    head = ['Name', 'Address', 'Zip', 'Dietary', '1 or 2']
+    temp = oml.make_list_template(SHEET, 5, 5, head)
+    vals = temp.get_all_values()
+    check_list = [vals[0][i] == h for i, h in enumerate(head)]
+    assert all(check_list), "list template headers don't match."
+    SHEET.del_worksheet(temp)
+
+
+def test_make_address_sheets():
+    oml.make_address_sheets(SHEET)
+    vals = SHEET.worksheet('Beth M. ~ List').get_all_values()
+    assert vals[2][0] == 'Destiny Watson', "1st waypoint name wrong"
+    assert vals[4][3] == '1179 Madeleine Circle', "3rd waypoint address wrong"
+    assert vals[8][7] == 'Meat', "7th dietary restriction wrong"
+
+
 def test_read_address_sheets():
     v_dict = oml.read_address_sheets(SHEET)
     tikkun_add = '7941 Elizabeth Street Cincinnati, OH 45231'
     check_list = [sd['add_list'][0] == tikkun_add for sd in v_dict.values()]
     assert all(check_list), "wrong first address in at least one address list"
-
-
-def test_make_address_sheets():
-    oml.make_address_sheets(SHEET, test_sheet=True)
-    vals = SHEET.worksheet('Beth M. ~ List').get_all_values()
-    assert vals[2][0] == 'Destiny Watson', "1st waypoint name wrong"
-    assert vals[4][3] == '1179 Madeleine Circle', "3rd waypoint address wrong"
-    assert vals[8][7] == 'Meat', "7th dietary restriction wrong"
 
 
 def test_make_address_list():

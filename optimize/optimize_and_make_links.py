@@ -39,7 +39,38 @@ def get_gsheet(secret='client_secret.json', test_sheet=True):
     return client.open(sheet_title)
 
 
-def make_address_sheets(spread_sheet, test_sheet=True, sleep_time=0.1):
+def make_list_template(spread_sheet, n_row, n_col,
+                       headers, sleep_time=0.25):
+    """
+    Makes list template worksheet for duplicating
+
+    Parameters
+    ----------
+    spread_sheet : gspread.models.Spreadsheet
+        spreadsheet interface returned by get_gsheet()
+    n_row, n_col : int
+        number of rows, columns
+
+    Returns
+    -------
+    gspread.models.Worksheet
+        created list template worksheet
+
+    """
+    worksheet = spread_sheet.add_worksheet(
+        title='List Template',
+        rows=n_row,
+        cols=n_col,
+        index=1
+    )
+    data_range = "A1:" + alphabet[n_col-1] + "1"
+    new_head = [headers]
+    update_sheet(worksheet, new_head, data_range)
+    format_worksheet(worksheet, n_row, n_col, sleep_time=sleep_time)
+    return worksheet
+
+
+def make_address_sheets(spread_sheet, sleep_time=0.25):
     """
     Reads in main sheet (form responses), pulls relevant columns
     grouped by driver, creates driver-specific address sheets
