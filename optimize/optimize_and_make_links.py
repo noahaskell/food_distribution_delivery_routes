@@ -106,18 +106,12 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
     new_head = ['Name', 'Email address', 'Phone number',
                 'Street address', 'Apt / Unit #', 'City, State',
                 'Zip code', 'Dietary', '1 or 2', '']
-    origin = ['Tikkun Farm',
-              'tikkunfarm@gmail.com',
-              '513-706-1519',
-              '7941 Elizabeth Street',
-              '',
-              'Cincinnati, OH',
-              '45231',
-              '',
-              '',
-              '']
+    origin = ['Tikkun Farm', 'tikkunfarm@gmail.com', '513-706-1519',
+              '7941 Elizabeth Street', '', 'Cincinnati, OH',
+              '45231', '', '', '']
 
     # construct address lists
+    n_row_l, n_col_l = [], []
     add_dict = {}
     this_driver = all_values[1][driver_idx]
     add_list = [new_head, origin]
@@ -126,8 +120,10 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
         temp_list = [row[j] for j in indices]
         if int(temp_list[-2]) > 6:
             temp_list[-2] = 'x2'
-        else:
+        elif int(temp_list[-2]) > 0:
             temp_list[-2] = 'x1'
+        else:
+            temp_list[-2] = ''
         if this_driver == row[driver_idx]:
             add_list.append(temp_list)
             day_driver = row[day_idx]
@@ -135,12 +131,25 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
             add_list[-1][-1] = day_driver
             add_dict[this_driver] = {'all_values': add_list,
                                      'index': idx}
+            n_row_l.append(len(add_list))
+            n_col_l.append(len(add_list[0]))
             idx += 1
             this_driver = row[driver_idx]
             add_list = [new_head, origin, temp_list]
         if test_sheet:
             if len(add_dict) > 5:
                 break
+    if not test_sheet:  # prevents weird straggler sheet when testing
+        add_list[-1][-1] = row[day_idx]
+        add_dict[this_driver] = {'all_values': add_list,
+                                 'index': idx}
+        n_row_l.append(len(add_list))
+        n_col_l.append(len(add_list[0]))
+    n_row, n_col = max(n_row_l), max(n_col_l)
+    list_template = make_list_template(spread_sheet=spread_sheet,
+                                       n_row=n_row,
+                                       n_col=n_col,
+                                       headers=new_head)
 
     # get rid of old address list sheets
     metadata = spread_sheet.fetch_sheet_metadata()
@@ -151,12 +160,16 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
         if '~' in title and 'list' in title.lower():
             worksheet = spread_sheet.worksheet(title)
             spread_sheet.del_worksheet(worksheet)
+            sleep(sleep_time)
 
     # make new address list sheets
-    update_sheets(spread_sheet, add_dict, sleep_time=sleep_time)
+    update_sheets(spread_sheet, add_dict, list_template, sleep_time=sleep_time)
+
+    # delete list template
+    spread_sheet.del_worksheet(list_template)
 
 
-def read_address_sheets(spread_sheet, sleep_time=0.1):
+def read_address_sheets(spread_sheet, sleep_time=0.25):
     """
     Reads and parses addresses from sheets with titles like "[Name] ~ List"
 
@@ -187,6 +200,7 @@ def read_address_sheets(spread_sheet, sleep_time=0.1):
         if '~' in title and 'list' in title_l and 'self' not in title_l:
             name = title.split('~')[0].strip()
             values_dict[name] = {'index': index}
+        sleep(sleep_time)
 
     for name in values_dict.keys():
         sheet_idx = values_dict[name]['index']
@@ -238,7 +252,7 @@ def make_address_list(gs_list):
     return add_list
 
 
-def optimize_waypoints(add_dict, sleep_time=0.1):
+def optimize_waypoints(add_dict, sleep_time=0.25):
     """
     Uses google maps api to optimize waypoints for routes
 
@@ -264,11 +278,13 @@ def optimize_waypoints(add_dict, sleep_time=0.1):
         origin = add_list[0]
         destin = add_list[-1]
         waypts = add_list[1:-1]
-        opt_list = gmap_client.directions(origin=origin,
-                                          destination=destin,
-                                          waypoints=waypts,
-                                          mode='driving',
-                                          optimize_waypoints=True)
+        opt_list = gmap_client.directions(
+            origin=origin,
+            destination=destin,
+            waypoints=waypts,
+            mode='driving',
+            optimize_waypoints=True
+        )
         opt_idx = opt_list[0]['waypoint_order']
         opt_vals = reorder_values(v_dict['all_values'], opt_idx)
         opt_route = [origin]
@@ -278,10 +294,10 @@ def optimize_waypoints(add_dict, sleep_time=0.1):
         opt_dict[name] = {'add_list': opt_route,
                           'all_values': opt_vals,
                           'index': sheet_idx}
+        sleep(sleep_time)
     return opt_dict
 
 
-# NOTE double check that notes column gets reordered correctly
 def reorder_values(values, idx):
     """
     Reorders worksheet values according to optimized indices
@@ -314,7 +330,8 @@ def reorder_values(values, idx):
     return reord
 
 
-def update_sheets(spread_sheet, val_dict, sleep_time=0.1):
+def update_sheets(spread_sheet, val_dict,
+                  template=None, sleep_time=0.25):
     """
     Updates worksheets with reordered values
      - optimized route order for printing
@@ -327,6 +344,8 @@ def update_sheets(spread_sheet, val_dict, sleep_time=0.1):
     val_dict : dict
         dictionary structured like that
         returned by optimize_waypoints()
+    template : gspread.models.Worksheet
+        template to be duplicated; if None creates new worksheet
     sleep_time : float
         duration in seconds for pausing to avoid overloading
         the sheets API request quotas
