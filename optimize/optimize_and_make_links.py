@@ -468,45 +468,62 @@ def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25):
         wrapStrategy='WRAP',
         textFormat=gsf.textFormat(fontSize=10)
     )
-    for sh in sheets:
-        props = sh.get('properties')
-        title = props.get('title')
-        if '~' in title and 'list' in title.lower():
-            worksheet = spread_sheet.worksheet(title)
-            values = worksheet.get_all_values()
-            headers = values[0]
-            diet_idx = headers.index('Dietary')
-            num_idx = headers.index('1 or 2')
-            n_rows = len(values)
-            n_cols = len(values[0])
-            n_col_l = alphabet[n_cols-1]
-            diet_l = alphabet[diet_idx]
-            num_l = alphabet[num_idx]
-            gsf.format_cell_ranges(
-                worksheet,
-                [("A1:" + n_col_l + str(n_rows), all_fmt),
-                 ("A1:" + n_col_l + "1", head_fmt),
-                 (diet_l + "2:" + diet_l + str(n_rows), diet_fmt),
-                 (num_l + "2:" + num_l + str(n_rows), num_fmt),
-                 (n_col_l + "2:" + n_col_l + str(n_rows-1), note_fmt)]
-            )
-            widths = [150, 120, 120, 180, 90, 120, 70, 60, 50, 200]
-            for i, w in enumerate(widths):
-                letter = alphabet[i]
-                gsf.set_column_width(worksheet, letter, w)
-        sleep(sleep_time)
+    values = worksheet.get_all_values()
+    sleep(sleep_time)
+    headers = values[0]
+    diet_idx = headers.index('Dietary')
+    num_idx = headers.index('1 or 2')
+    if n_row is None:
+        n_row = len(values)
+    if n_col is None:
+        n_col = len(values[0])
+    n_col_l = alphabet[n_col-1]
+    diet_l = alphabet[diet_idx]
+    num_l = alphabet[num_idx]
+    gsf.format_cell_ranges(
+        worksheet,
+        [("A1:" + n_col_l + str(n_row), all_fmt)]
+    )
+    sleep(sleep_time)
+    gsf.format_cell_ranges(
+        worksheet,
+        [("A1:" + n_col_l + "1", head_fmt)]
+    )
+    sleep(sleep_time)
+    gsf.format_cell_ranges(
+        worksheet,
+        [(diet_l + "2:" + diet_l + str(n_row), diet_fmt)]
+    )
+    sleep(sleep_time)
+    gsf.format_cell_ranges(
+        worksheet,
+        [(num_l + "2:" + num_l + str(n_row), num_fmt)]
+    )
+    sleep(sleep_time)
+    gsf.format_cell_ranges(
+        worksheet,
+        [(n_col_l + "2:" + n_col_l + str(n_row-1), note_fmt)]
+    )
+    sleep(sleep_time)
+    widths = [160, 230, 120, 180, 90, 120, 70, 60, 50, 230]
+    for i in range(n_col):
+        w = widths[i]
+        letter = alphabet[i]
+        gsf.set_column_width(worksheet, letter, w)
+    sleep(sleep_time)
 
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    testing = True
+    testing = False
+    sleep_time = 1.5
     spread_sheet = get_gsheet(test_sheet=testing)
     # make address sheets
-    make_address_sheets(spread_sheet, test_sheet=testing)
+    make_address_sheets(spread_sheet, sleep_time=sleep_time)
     # get dict of address lists, worksheet values
-    add_dict = read_address_sheets(spread_sheet, sleep_time=0.25)
+    add_dict = read_address_sheets(spread_sheet, sleep_time=sleep_time)
     # optimize waypoint orders
-    opt_dict = optimize_waypoints(add_dict)
+    opt_dict = optimize_waypoints(add_dict, sleep_time=sleep_time)
     # links filename, then make links and write to file
     today = datetime.today()
     links_fname = 'links_' + '_'.join([str(today.day),
