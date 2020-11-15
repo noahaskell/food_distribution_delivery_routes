@@ -439,12 +439,19 @@ def make_directions_link(L):
     return url
 
 
-def format_address_sheets(spread_sheet, sleep_time=0.1):
+def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25):
     """
-    Formats address list sheets for printing
+    Formats individual worksheet
+
+    Parameters
+    ----------
+    worksheet : gspread.models.Worksheet
+        worksheet to be formatted
+    n_row, n_col : int
+        number of rows, cols; if None, determine from data in worksheet
+    sleep_time : float
+        delay to avoid google sheets API quota problems
     """
-    metadata = spread_sheet.fetch_sheet_metadata()
-    sheets = metadata.get('sheets', '')
     all_fmt = gsf.cellFormat(
         textFormat=gsf.textFormat(fontSize=12)
     )
