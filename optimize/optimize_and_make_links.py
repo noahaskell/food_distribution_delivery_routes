@@ -185,9 +185,12 @@ def read_address_sheets(spread_sheet, sleep_time=0.25):
     -------
     dict
         keys = driver names, values = dicts
-            keys = (worksheet) title, (worksheet) index, add_list, all_values
+            keys = title, index, add_list, all_values, link
+                title = worksheet title
+                index = worksheet index
                 add_list = [origin, waypoints, destination]
                 all_values = list of lists with all cell values from worksheet
+                link = link to driver sheet
     """
     sheet_metadata = spread_sheet.fetch_sheet_metadata()
     sheets = sheet_metadata.get('sheets', '')
@@ -205,6 +208,7 @@ def read_address_sheets(spread_sheet, sleep_time=0.25):
     for name in values_dict.keys():
         sheet_idx = values_dict[name]['index']
         worksheet = spread_sheet.get_worksheet(sheet_idx)
+        values_dict[name]['link'] = make_sheet_link(spread_sheet, worksheet)
         values = worksheet.get_all_values()
         add_list = make_address_list(values)
         values_dict[name]['add_list'] = add_list
@@ -275,6 +279,7 @@ def optimize_waypoints(add_dict, sleep_time=0.25):
     for name, v_dict in add_dict.items():
         add_list = v_dict['add_list']
         sheet_idx = v_dict['index']
+        sheet_link = v_dict['link']
         origin = add_list[0]
         destin = add_list[-1]
         waypts = add_list[1:-1]
@@ -293,7 +298,8 @@ def optimize_waypoints(add_dict, sleep_time=0.25):
         opt_route.append(destin)
         opt_dict[name] = {'add_list': opt_route,
                           'all_values': opt_vals,
-                          'index': sheet_idx}
+                          'index': sheet_idx,
+                          'link': sheet_link}
         sleep(sleep_time)
     return opt_dict
 
@@ -397,6 +403,37 @@ def update_sheet(worksheet, values, data_range):
     worksheet.update_cells(cell_list)
 
 
+def make_links_page(address_dict, out_file='links.html'):
+    """
+    Makes html page with links to worksheets and google maps directions
+
+    Parameters
+    ----------
+    address_dict : dict
+        dictionary with name : dict(index, link, add_list, values)
+    out_file : str
+        file name for links page
+    """
+    html_a = '<!doctype html><html lang="en"><body>'
+    html_z = '</body></html>'
+    par_a = '<p style="font-family:Roboto;font-size:13px">'
+    links_list = []
+    for name, sub_dict in address_dict.items():
+        dir_text = name + ' ~ Directions'
+        dir_link = make_directions_link(sub_dict['add_list'])
+        sheet_text = name + ' ~ List'
+        sheet_link = sub_dict['link']
+        these_links = par_a + '<a href="' + \
+            sheet_link + '">' + sheet_text + \
+            '</a> &#38; <a href="' + \
+            dir_link + '">' + dir_text + '</a></p>'
+        links_list.append(these_links)
+    html = html_a + " ".join(links_list) + html_z
+
+    with open(out_file, "w") as f:
+        f.write(html)
+
+
 def process_routes(address_dict, out_file='links.txt'):
     """
     Makes clickable google map directions links from address lists
@@ -427,6 +464,15 @@ def process_routes(address_dict, out_file='links.txt'):
                 f.write('\n')
     else:
         return all_routes
+
+
+def make_sheet_link(spread_sheet, worksheet):
+    "Makes link to specific worksheet"
+    prefix = "https://docs.google.com/spreadsheets/d/"
+    ss_id = spread_sheet.id
+    infix = "/view#gid="
+    ws_id = str(worksheet.id)
+    return prefix + ss_id + infix + ws_id
 
 
 def make_directions_link(L):
@@ -515,7 +561,7 @@ def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25):
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    testing = False
+    testing = True
     sleep_time = 1.5
     spread_sheet = get_gsheet(test_sheet=testing)
     # make address sheets
@@ -528,7 +574,8 @@ if __name__ == "__main__":
     today = datetime.today()
     links_fname = 'links_' + '_'.join([str(today.day),
                                        str(today.month),
-                                       str(today.year)]) + '.txt'
-    process_routes(opt_dict, links_fname)
+                                       str(today.year)]) + '.html'
+    # process_routes(opt_dict, links_fname)
+    make_links_page(opt_dict, links_fname)
     # update cells in google sheets
     update_sheets(spread_sheet, opt_dict, sleep_time=sleep_time)
