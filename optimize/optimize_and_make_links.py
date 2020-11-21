@@ -6,6 +6,10 @@ import googlemaps as gm
 from datetime import datetime
 from string import ascii_uppercase as alphabet
 from time import sleep
+import logging
+
+logging.basicConfig(filename='info.log',
+                    level=logging.INFO)
 
 config = configparser.ConfigParser()
 config.read('food_dist.cfg')
@@ -561,21 +565,26 @@ def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25):
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    testing = True
-    sleep_time = 1.5
+    testing = False
+    date_str = str(datetime.today()) .split('.')[0]
+    sleep_time = 2
+    logging.info(date_str + ": sleep_time = " + str(sleep_time))
+    logging.info(date_str + ": getting spreadsheet")
     spread_sheet = get_gsheet(test_sheet=testing)
     # make address sheets
+    logging.info(date_str + ": making address sheets")
     make_address_sheets(spread_sheet, sleep_time=sleep_time)
     # get dict of address lists, worksheet values
+    logging.info(date_str + ": processing address sheets")
     add_dict = read_address_sheets(spread_sheet, sleep_time=sleep_time)
     # optimize waypoint orders
+    logging.info(date_str + ": optimizing routes")
     opt_dict = optimize_waypoints(add_dict, sleep_time=sleep_time)
     # links filename, then make links and write to file
-    today = datetime.today()
-    links_fname = 'links_' + '_'.join([str(today.day),
-                                       str(today.month),
-                                       str(today.year)]) + '.html'
+    links_fname = 'links_' + date_str + '.html'
     # process_routes(opt_dict, links_fname)
+    logging.info(date_str + ": making links page")
     make_links_page(opt_dict, links_fname)
     # update cells in google sheets
+    logging.info(date_str + ": updating sheets")
     update_sheets(spread_sheet, opt_dict, sleep_time=sleep_time)
