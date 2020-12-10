@@ -16,6 +16,7 @@ import logging
 #    i.e., remove the sheet making step with non-optimized routes
 # - add functionality to only process subset
 #  - e.g., read in, optimize, make links for subset of ~ List sheets
+# - ensure alphabetical order of ~ List sheets
 
 logging.basicConfig(filename='info.log',
                     level=logging.INFO)
