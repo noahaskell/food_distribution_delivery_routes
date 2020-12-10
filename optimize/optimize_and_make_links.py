@@ -165,6 +165,7 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
                                        n_col=n_col,
                                        headers=new_head)
 
+    # NOTE pull out to separate function?
     # get rid of old address list sheets
     metadata = spread_sheet.fetch_sheet_metadata()
     sheets = metadata.get('sheets', '')
@@ -176,13 +177,16 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
             spread_sheet.del_worksheet(worksheet)
             sleep(sleep_time)
 
+    # NOTE drop this, return add_dict for optimization
     # make new address list sheets
     update_sheets(spread_sheet, add_dict, list_template, sleep_time=sleep_time)
 
+    # NOTE move this (w/ check for template existence) to post-opt update call
     # delete list template
     spread_sheet.del_worksheet(list_template)
 
 
+# NOTE will probably be obviated by make_address_sheet refactor
 def read_address_sheets(spread_sheet, sleep_time=0.25):
     """
     Reads and parses addresses from sheets with titles like "[Name] ~ List"
