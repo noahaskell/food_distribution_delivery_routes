@@ -395,6 +395,8 @@ def update_sheets(spread_sheet, val_dict,
             )
         update_sheet(worksheet, values, data_range)
         sleep(sleep_time)
+        format_worksheet(worksheet, n_row=n_rows, n_col=n_cols,
+                         to_do={'init': False, 'driver': True})
 
 
 def update_sheet(worksheet, values, data_range):
@@ -498,7 +500,8 @@ def make_directions_link(L):
     return url
 
 
-def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25):
+def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25,
+                     to_do={'init': True, 'driver': False}):
     """
     Formats individual worksheet
 
@@ -510,71 +513,82 @@ def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25):
         number of rows, cols; if None, determine from data in worksheet
     sleep_time : float
         delay to avoid google sheets API quota problems
+    to_do : dict
+        specifies initial and/or driver cell formatting
+        keys 'init' and 'driver', values bool
     """
-    all_fmt = gsf.cellFormat(
+    font_fmt = gsf.cellFormat(
         textFormat=gsf.textFormat(fontSize=12)
     )
-    head_fmt = gsf.cellFormat(
-        textFormat=gsf.textFormat(bold=True)
-    )
-    diet_fmt = gsf.cellFormat(
-        horizontalAlignment='RIGHT'
-    )
-    num_fmt = gsf.cellFormat(
-        horizontalAlignment='LEFT'
-    )
-    note_fmt = gsf.cellFormat(
-        wrapStrategy='WRAP',
-        textFormat=gsf.textFormat(fontSize=10)
-    )
-    values = worksheet.get_all_values()
-    sleep(sleep_time)
-    headers = values[0]
-    diet_idx = headers.index('Dietary')
-    num_idx = headers.index('1 or 2')
-    if n_row is None:
-        n_row = len(values)
-    if n_col is None:
-        n_col = len(values[0])
-    n_col_l = alphabet[n_col-1]
-    diet_l = alphabet[diet_idx]
-    num_l = alphabet[num_idx]
-    gsf.format_cell_ranges(
-        worksheet,
-        [("A1:" + n_col_l + str(n_row), all_fmt)]
-    )
-    sleep(sleep_time)
-    gsf.format_cell_ranges(
-        worksheet,
-        [("A1:" + n_col_l + "1", head_fmt)]
-    )
-    sleep(sleep_time)
-    gsf.format_cell_ranges(
-        worksheet,
-        [(diet_l + "2:" + diet_l + str(n_row), diet_fmt)]
-    )
-    sleep(sleep_time)
-    gsf.format_cell_ranges(
-        worksheet,
-        [(num_l + "2:" + num_l + str(n_row), num_fmt)]
-    )
-    sleep(sleep_time)
-    gsf.format_cell_ranges(
-        worksheet,
-        [(n_col_l + "2:" + n_col_l + str(n_row-1), note_fmt)]
-    )
-    sleep(sleep_time)
-    widths = [160, 230, 120, 180, 90, 120, 70, 60, 50, 230]
-    for i in range(n_col):
-        w = widths[i]
-        letter = alphabet[i]
-        gsf.set_column_width(worksheet, letter, w)
-    sleep(sleep_time)
+    if to_do['driver']:
+        # assumes n_row, n_col are specified
+        n_col_l = alphabet[n_col-1]
+        gsf.format_cell_ranges(
+            worksheet,
+            [(n_col_l + str(n_row), font_fmt)]
+        )
+    if to_do['init']:
+        head_fmt = gsf.cellFormat(
+            textFormat=gsf.textFormat(bold=True)
+        )
+        diet_fmt = gsf.cellFormat(
+            horizontalAlignment='RIGHT'
+        )
+        num_fmt = gsf.cellFormat(
+            horizontalAlignment='LEFT'
+        )
+        note_fmt = gsf.cellFormat(
+            wrapStrategy='WRAP',
+            textFormat=gsf.textFormat(fontSize=10)
+        )
+        values = worksheet.get_all_values()
+        sleep(sleep_time)
+        headers = values[0]
+        diet_idx = headers.index('Dietary')
+        num_idx = headers.index('1 or 2')
+        if n_row is None:
+            n_row = len(values)
+        if n_col is None:
+            n_col = len(values[0])
+        n_col_l = alphabet[n_col-1]
+        diet_l = alphabet[diet_idx]
+        num_l = alphabet[num_idx]
+        gsf.format_cell_ranges(
+            worksheet,
+            [("A1:" + n_col_l + str(n_row), font_fmt)]
+        )
+        sleep(sleep_time)
+        gsf.format_cell_ranges(
+            worksheet,
+            [("A1:" + n_col_l + "1", head_fmt)]
+        )
+        sleep(sleep_time)
+        gsf.format_cell_ranges(
+            worksheet,
+            [(diet_l + "2:" + diet_l + str(n_row), diet_fmt)]
+        )
+        sleep(sleep_time)
+        gsf.format_cell_ranges(
+            worksheet,
+            [(num_l + "2:" + num_l + str(n_row), num_fmt)]
+        )
+        sleep(sleep_time)
+        gsf.format_cell_ranges(
+            worksheet,
+            [(n_col_l + "2:" + n_col_l + str(n_row-1), note_fmt)]
+        )
+        sleep(sleep_time)
+        widths = [160, 230, 120, 180, 90, 120, 70, 60, 50, 230]
+        for i in range(n_col):
+            w = widths[i]
+            letter = alphabet[i]
+            gsf.set_column_width(worksheet, letter, w)
+        sleep(sleep_time)
 
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    testing = False
+    testing = True
     date_str = str(datetime.today()) .split('.')[0]
     sleep_time = 2
     logging.info(date_str + ": sleep_time = " + str(sleep_time))
