@@ -8,18 +8,45 @@ def make_add_dict():
                 '498 Sanchez St San Francisco, CA 94114',
                 '4416 18th St San Francisco, CA 94114',
                 '2288 Mission St San Francisco, CA 94110']
+    street = ['1530 Haight St',
+              '498 Sanchez St',
+              '4416 18th St',
+              '2288 Mission St']
     names = ['Haight St Market', 'La Marais', 'Mama Jis', 'Taqueria Cancun']
-    types = ['grocery', 'cafe', 'restaurant', 'restaurant']
-    all_vals = [['Name', 'Address', 'Type']]
+    email = ['hsm@hsm.com', 'pierre@lamarais.com', 'mama@mamajis.com',
+             'taco@cancun.com']
+    phone = ['123-3445', '432-2343', '555-5555', '911-1991']
+    apt = ['', '', '', '']
+    city_st = ['San Francisco, CA' for i in range(4)]
+    zip_code = [x.split(' ')[-1] for x in add_list]
+    diet = ['grocery', 'cafe', 'restaurant', 'restaurant']
+    amount = ['x1', 'x2', 'x1', 'x1']
+    all_vals = [['Name', 'Email address', 'Phone number',
+                 'Street address', 'Apt / Unit #', 'City, State',
+                 'Zip code', 'Dietary', '1 or 2']]
     for i in range(4):
-        all_vals.append([names[i], add_list[i], types[i]])
+        all_vals.append([names[i], email[i], phone[i], street[i],
+                         apt[i], city_st[i], zip_code[i], diet[i],
+                         amount[i]])
     add_dict = {'Ronald': {'index': 0,
-                           'add_list': add_list,
+                           'add_list': oml.make_address_list(all_vals),
                            'all_values': all_vals}}
     return add_dict
 
 
 ADD_DICT = make_add_dict()
+
+
+def get_worksheet_names():
+    "Helper function for various tests"
+    metadata = SHEET.fetch_sheet_metadata()
+    sheets = metadata.get('sheets', '')
+    sheet_names = []
+    for sh in sheets:
+        props = sh.get('properties')
+        title = props.get('title')
+        sheet_names.append(title)
+    return sheet_names
 
 
 def test_get_gsheet():
@@ -31,6 +58,23 @@ def test_get_gsheet():
     assert len(values) == 320, "wrong number of values in Everything sheet"
 
 
+def test_do_list_template():
+    # check for list template, get rid of it if it's there
+    init_names = get_worksheet_names()
+    if 'List Template' in init_names:
+        lt = SHEET.worksheet('List Template')
+        SHEET.del_worksheet(lt)
+    # test do_list_template function
+    list_template = oml.do_list_template(SHEET, ADD_DICT)
+    names_mk = get_worksheet_names()
+    oml.do_list_template(SHEET)
+    names_rm = get_worksheet_names()
+    assert isinstance(list_template, oml.gspread.models.Worksheet), \
+        "list_template is the wrong type"
+    assert 'List Template' in names_mk, "List template not created"
+    assert 'List Template' not in names_rm, "List template not removed"
+
+
 def test_make_list_template():
     head = ['Name', 'Address', 'Zip', 'Dietary', '1 or 2']
     temp = oml.make_list_template(SHEET, 5, 5, head)
@@ -40,19 +84,35 @@ def test_make_list_template():
     SHEET.del_worksheet(temp)
 
 
-def test_make_address_sheets():
-    oml.make_address_sheets(SHEET)
-    vals = SHEET.worksheet('Beth M. ~ List').get_all_values()
+def test_make_address_dict():
+    add_dict = oml.make_address_dict(SHEET)
+    vals = add_dict['Beth M.']['all_values']
     assert vals[2][0] == 'Destiny Watson', "1st waypoint name wrong"
     assert vals[4][3] == '1179 Madeleine Circle', "3rd waypoint address wrong"
     assert vals[8][7] == 'Meat', "7th dietary restriction wrong"
+    add_l = add_dict['Beth M.']['add_list']
+    assert add_l[1] == '6209 Stella Avenue Cincinnati, OH 45224', \
+        "second address in address list wrong"
+    assert add_l[-1] == '544 Burr Oak Street Cincinnati, OH 45232', \
+        "last address in address list wrong"
 
 
 def test_read_address_sheets():
+    oml.update_sheets(SHEET, ADD_DICT)
     v_dict = oml.read_address_sheets(SHEET)
-    tikkun_add = '7941 Elizabeth Street Cincinnati, OH 45231'
-    check_list = [sd['add_list'][0] == tikkun_add for sd in v_dict.values()]
+    hsm_add = '1530 Haight St San Francisco, CA 94117'
+    check_list = [sd['add_list'][0] == hsm_add for sd in v_dict.values()]
     assert all(check_list), "wrong first address in at least one address list"
+
+
+def test_remove_route_sheets():
+    oml.remove_route_sheets(SHEET)
+    names = get_worksheet_names()
+    num_route_lists = 0
+    for n in names:
+        if '~ List' in n:
+            num_route_lists += 1
+    assert num_route_lists == 0, "Some route worksheets were not removed."
 
 
 def test_make_address_list():
@@ -103,7 +163,7 @@ def test_reorder_values():
 
 
 def test_update_sheets():
-    oml.update_sheets(SHEET, ADD_DICT)
+    add_dict = oml.update_sheets(SHEET, ADD_DICT)
     all_vals = ADD_DICT['Ronald']['all_values']
     sheet_u = SHEET.worksheet('Ronald ~ List')
     values = sheet_u.get_all_values()
@@ -112,6 +172,7 @@ def test_update_sheets():
         for j, val in enumerate(row):
             check_list.append(val == all_vals[i][j])
     assert all(check_list), "at least one updated value incorrect"
+    assert 'link' in add_dict['Ronald'].keys(), "Link not added to subdict"
     SHEET.del_worksheet(sheet_u)
 
 

@@ -84,18 +84,24 @@ def make_list_template(spread_sheet, n_row, n_col,
     return worksheet
 
 
-def make_address_sheets(spread_sheet, sleep_time=0.25):
+def make_address_dict(spread_sheet, sleep_time=0.25):
     """
     Reads in main sheet (form responses), pulls relevant columns
     grouped by driver, creates driver-specific address sheets
 
     Parameters
     ----------
-    spread_sheet : gspread.models.SpreadSheet
+    spread_sheet : gspread.models.Spreadsheet
         spreadsheet interface returned by get_gsheet()
     sleep_time : float
         duration in seconds for pausing to avoid overloading
         the sheets API requests quota
+
+    Returns
+    -------
+    dict
+        keys = driver names; values = dict
+            keys = all_values (list of lists), index (worksheet)
     """
     # needed cols
     # Name, Email address, Phone number, Street address, Apt / Unit #,
@@ -125,10 +131,9 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
               '45231', '', '', '']
 
     # construct address lists
-    n_row_l, n_col_l = [], []
     add_dict = {}
     this_driver = all_values[1][driver_idx]
-    add_list = [new_head, origin]
+    all_val_list = [new_head, origin]
     idx = 1
     for row in all_values[1:]:
         temp_list = [row[j] for j in indices]
@@ -139,33 +144,37 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
         else:
             temp_list[-2] = ''
         if this_driver == row[driver_idx]:
-            add_list.append(temp_list)
+            all_val_list.append(temp_list)
             day_driver = row[day_idx]
         else:
-            add_list[-1][-1] = day_driver
-            add_dict[this_driver] = {'all_values': add_list,
-                                     'index': idx}
-            n_row_l.append(len(add_list))
-            n_col_l.append(len(add_list[0]))
+            all_val_list[-1][-1] = day_driver
+            add_dict[this_driver] = {
+                'all_values': all_val_list,
+                'add_list': make_address_list(all_val_list),
+                'index': idx
+            }
             idx += 1
             this_driver = row[driver_idx]
-            add_list = [new_head, origin, temp_list]
+            all_val_list = [new_head, origin, temp_list]
         if test_sheet:
             if len(add_dict) > 5:
                 break
     if not test_sheet:  # prevents weird straggler sheet when testing
-        add_list[-1][-1] = row[day_idx]
-        add_dict[this_driver] = {'all_values': add_list,
+        all_val_list[-1][-1] = row[day_idx]
+        add_dict[this_driver] = {'all_values': all_val_list,
                                  'index': idx}
-        n_row_l.append(len(add_list))
-        n_col_l.append(len(add_list[0]))
-    n_row, n_col = max(n_row_l), max(n_col_l)
-    list_template = make_list_template(spread_sheet=spread_sheet,
-                                       n_row=n_row,
-                                       n_col=n_col,
-                                       headers=new_head)
+    return add_dict
 
-    # NOTE pull out to separate function?
+
+def remove_route_sheets(spread_sheet, sleep_time=0.25):
+    """
+    Removes existing `[Name] ~ List` worksheets from spread_sheet
+
+    Parameters
+    ----------
+    spread_sheet : gspread.models.Spreadsheet
+        spreadsheet interface returned by get_gsheet()
+    """
     # get rid of old address list sheets
     metadata = spread_sheet.fetch_sheet_metadata()
     sheets = metadata.get('sheets', '')
@@ -177,13 +186,40 @@ def make_address_sheets(spread_sheet, sleep_time=0.25):
             spread_sheet.del_worksheet(worksheet)
             sleep(sleep_time)
 
-    # NOTE drop this, return add_dict for optimization
-    # make new address list sheets
-    update_sheets(spread_sheet, add_dict, list_template, sleep_time=sleep_time)
 
-    # NOTE move this (w/ check for template existence) to post-opt update call
-    # delete list template
-    spread_sheet.del_worksheet(list_template)
+def do_list_template(spread_sheet, add_dict=None):
+    """
+    Creates or removes list template worksheet in spread_sheet
+
+    Parameters
+    ----------
+    spread_sheet : gspread.models.Spreadsheet
+        spreadsheet interface returned by get_gsheet()
+    add_dict : dict (optional)
+        dictionary returned by make_address_dict() or optimize_waypoints()
+        if is None, remove list template worksheet
+        if not None, create and return list template worksheet
+    """
+    if add_dict is None:
+        list_template = spread_sheet.worksheet('List Template')
+        spread_sheet.del_worksheet(list_template)
+    else:
+        new_head = ['Name', 'Email address', 'Phone number',
+                    'Street address', 'Apt / Unit #', 'City, State',
+                    'Zip code', 'Dietary', '1 or 2', '']
+        n_row_l, n_col_l = [], []
+        for driver, subdict in add_dict.items():
+            add_list = subdict['all_values']
+            n_row_l.append(len(add_list))
+            n_col_l.append(len(add_list[0]))
+        n_row, n_col = max(n_row_l), max(n_col_l)
+        list_template = make_list_template(
+            spread_sheet=spread_sheet,
+            n_row=n_row,
+            n_col=n_col,
+            headers=new_head
+        )
+        return list_template
 
 
 # NOTE will probably be obviated by make_address_sheet refactor
@@ -193,7 +229,7 @@ def read_address_sheets(spread_sheet, sleep_time=0.25):
 
     Parameters
     ----------
-    spread_sheet : gspread.models.SpreadSheet
+    spread_sheet : gspread.models.Spreadsheet
         spreadsheet interface returned by get_gsheet()
     sleep_time : float
         duration in seconds for pausing to avoid overloading
@@ -297,7 +333,6 @@ def optimize_waypoints(add_dict, sleep_time=0.25):
     for name, v_dict in add_dict.items():
         add_list = v_dict['add_list']
         sheet_idx = v_dict['index']
-        sheet_link = v_dict['link']
         origin = add_list[0]
         destin = add_list[-1]
         waypts = add_list[1:-1]
@@ -316,8 +351,7 @@ def optimize_waypoints(add_dict, sleep_time=0.25):
         opt_route.append(destin)
         opt_dict[name] = {'add_list': opt_route,
                           'all_values': opt_vals,
-                          'index': sheet_idx,
-                          'link': sheet_link}
+                          'index': sheet_idx}
         sleep(sleep_time)
     return opt_dict
 
@@ -373,6 +407,11 @@ def update_sheets(spread_sheet, val_dict,
     sleep_time : float
         duration in seconds for pausing to avoid overloading
         the sheets API request quotas
+
+    Returns
+    -------
+    dict
+        same as input dict, but with sheet_links added to subdicts
     """
     titles = [t.title for t in spread_sheet.worksheets()]
     for name, sub_dict in val_dict.items():
@@ -399,9 +438,11 @@ def update_sheets(spread_sheet, val_dict,
                 index=sheet_idx
             )
         update_sheet(worksheet, values, data_range)
+        sub_dict['link'] = make_sheet_link(spread_sheet, worksheet)
         sleep(sleep_time)
         format_worksheet(worksheet, n_row=n_rows, n_col=n_cols,
                          to_do={'init': False, 'driver': True})
+    return val_dict
 
 
 def update_sheet(worksheet, values, data_range):
@@ -595,24 +636,41 @@ if __name__ == "__main__":
     # get spread_sheet interface
     testing = True
     date_str = str(datetime.today()) .split('.')[0]
-    sleep_time = 2
+    sleep_time = 1
     logging.info(date_str + ": sleep_time = " + str(sleep_time))
     logging.info(date_str + ": getting spreadsheet")
     spread_sheet = get_gsheet(test_sheet=testing)
+
     # make address sheets
     logging.info(date_str + ": making address sheets")
-    make_address_sheets(spread_sheet, sleep_time=sleep_time)
+    add_dict = make_address_dict(spread_sheet, sleep_time=sleep_time)
+
     # get dict of address lists, worksheet values
-    logging.info(date_str + ": processing address sheets")
-    add_dict = read_address_sheets(spread_sheet, sleep_time=sleep_time)
+    # logging.info(date_str + ": processing address sheets")
+    # add_dict = read_address_sheets(spread_sheet, sleep_time=sleep_time)
+
     # optimize waypoint orders
     logging.info(date_str + ": optimizing routes")
     opt_dict = optimize_waypoints(add_dict, sleep_time=sleep_time)
+
+    # create list_template
+    list_template = do_list_template(spread_sheet, opt_dict)
+
+    # make route worksheets with optimized routes
+    logging.info(date_str + ": updating sheets")
+    opt_dict = update_sheets(
+        spread_sheet,
+        opt_dict,
+        list_template,
+        sleep_time=sleep_time
+    )
+
+    # delete list_template
+    do_list_template(spread_sheet)
+
     # links filename, then make links and write to file
     links_fname = 'links_' + date_str + '.html'
+
     # process_routes(opt_dict, links_fname)
     logging.info(date_str + ": making links page")
     make_links_page(opt_dict, links_fname)
-    # update cells in google sheets
-    logging.info(date_str + ": updating sheets")
-    update_sheets(spread_sheet, opt_dict, sleep_time=sleep_time)
