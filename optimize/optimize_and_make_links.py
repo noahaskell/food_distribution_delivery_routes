@@ -654,6 +654,9 @@ if __name__ == "__main__":
     logging.info(date_str + ": optimizing routes")
     opt_dict = optimize_waypoints(add_dict, sleep_time=sleep_time)
 
+    # remove old route sheets; add sleep_time?
+    remove_route_sheets(spread_sheet, sleep_time=sleep_time)
+
     # create list_template
     list_template = do_list_template(spread_sheet, opt_dict)
 
