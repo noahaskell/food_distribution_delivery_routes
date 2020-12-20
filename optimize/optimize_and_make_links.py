@@ -162,6 +162,7 @@ def make_address_dict(spread_sheet, sleep_time=0.25):
     if not test_sheet:  # prevents weird straggler sheet when testing
         all_val_list[-1][-1] = row[day_idx]
         add_dict[this_driver] = {'all_values': all_val_list,
+                                 'add_list': make_address_list(all_val_list),
                                  'index': idx}
     return add_dict
 
