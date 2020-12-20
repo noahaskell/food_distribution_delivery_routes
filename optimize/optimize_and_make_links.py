@@ -635,9 +635,9 @@ def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25,
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    testing = True
+    testing = False
     date_str = str(datetime.today()) .split('.')[0]
-    sleep_time = 1
+    sleep_time = 2.5
     logging.info(date_str + ": sleep_time = " + str(sleep_time))
     logging.info(date_str + ": getting spreadsheet")
     spread_sheet = get_gsheet(test_sheet=testing)
