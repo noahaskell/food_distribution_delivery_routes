@@ -25,6 +25,28 @@ config = configparser.ConfigParser()
 config.read('food_dist.cfg')
 
 
+def get_worksheet_names(spread_sheet):
+    """Get a list of worksheet names
+
+    Parameters
+    ----------
+    spread_sheet : gspread.models.Spreadsheet
+
+    Returns
+    -------
+    list
+        list of names of worksheets
+    """
+    metadata = spread_sheet.fetch_sheet_metadata()
+    sheets = metadata.get('sheets', '')
+    sheet_names = []
+    for sh in sheets:
+        props = sh.get('properties')
+        title = props.get('title')
+        sheet_names.append(title)
+    return sheet_names
+
+
 def get_gsheet(secret='client_secret.json', test_sheet=True):
     """
     Gets google spreadsheet interface

@@ -37,18 +37,6 @@ def make_add_dict():
 ADD_DICT = make_add_dict()
 
 
-def get_worksheet_names():
-    "Helper function for various tests"
-    metadata = SHEET.fetch_sheet_metadata()
-    sheets = metadata.get('sheets', '')
-    sheet_names = []
-    for sh in sheets:
-        props = sh.get('properties')
-        title = props.get('title')
-        sheet_names.append(title)
-    return sheet_names
-
-
 def test_get_gsheet():
     assert SHEET.title == 'test_for_reordering_address_lists', \
         "sheet title incorrect"
