@@ -75,8 +75,7 @@ def get_gsheet(secret='client_secret.json', test_sheet=True):
     return client.open(sheet_title)
 
 
-def make_list_template(spread_sheet, n_row, n_col,
-                       headers, sleep_time=0.25):
+def make_list_template(spread_sheet, add_dict, sleep_time=0.25):
     """
     Makes list template worksheet for duplicating
 
@@ -84,25 +83,40 @@ def make_list_template(spread_sheet, n_row, n_col,
     ----------
     spread_sheet : gspread.models.Spreadsheet
         spreadsheet interface returned by get_gsheet()
-    n_row, n_col : int
-        number of rows, columns
+    add_dict : dict (optional)
+        dictionary returned by make_address_dict() or optimize_waypoints()
 
     Returns
     -------
     gspread.models.Worksheet
-        created list template worksheet
+        retrieved or created list template worksheet
 
     """
-    worksheet = spread_sheet.add_worksheet(
-        title='List Template',
-        rows=n_row,
-        cols=n_col,
-        index=1
-    )
-    data_range = "A1:" + alphabet[n_col-1] + "1"
-    new_head = [headers]
-    update_sheet(worksheet, new_head, data_range)
-    format_worksheet(worksheet, n_row, n_col, sleep_time=sleep_time)
+    worksheet_names = get_worksheet_names(spread_sheet)
+    if 'List Template' in worksheet_names:
+        worksheet = spread_sheet.worksheet('List Template')
+    else:
+        n_row_l, n_col_l = [], []
+        for driver, subdict in add_dict.items():
+            add_list = subdict['all_values']
+            n_row_l.append(len(add_list))
+            n_col_l.append(len(add_list[0]))
+        n_row, n_col = max(n_row_l), max(n_col_l)
+        data_range = "A1:" + alphabet[n_col-1] + "1"
+
+        worksheet = spread_sheet.add_worksheet(
+            title='List Template',
+            rows=n_row,
+            cols=n_col,
+            index=1
+        )
+
+        new_head = [['Name', 'Email address', 'Phone number',
+                     'Street address', 'Apt / Unit #', 'City, State',
+                     'Zip code', 'Dietary', '1 or 2', '']]
+        update_sheet(worksheet, new_head, data_range)
+        format_worksheet(worksheet, n_row, n_col, sleep_time=sleep_time)
+
     return worksheet
 
 
@@ -208,41 +222,6 @@ def remove_route_sheets(spread_sheet, sleep_time=0.25):
             worksheet = spread_sheet.worksheet(title)
             spread_sheet.del_worksheet(worksheet)
             sleep(sleep_time)
-
-
-def do_list_template(spread_sheet, add_dict=None):
-    """
-    Creates or removes list template worksheet in spread_sheet
-
-    Parameters
-    ----------
-    spread_sheet : gspread.models.Spreadsheet
-        spreadsheet interface returned by get_gsheet()
-    add_dict : dict (optional)
-        dictionary returned by make_address_dict() or optimize_waypoints()
-        if is None, remove list template worksheet
-        if not None, create and return list template worksheet
-    """
-    if add_dict is None:
-        list_template = spread_sheet.worksheet('List Template')
-        spread_sheet.del_worksheet(list_template)
-    else:
-        new_head = ['Name', 'Email address', 'Phone number',
-                    'Street address', 'Apt / Unit #', 'City, State',
-                    'Zip code', 'Dietary', '1 or 2', '']
-        n_row_l, n_col_l = [], []
-        for driver, subdict in add_dict.items():
-            add_list = subdict['all_values']
-            n_row_l.append(len(add_list))
-            n_col_l.append(len(add_list[0]))
-        n_row, n_col = max(n_row_l), max(n_col_l)
-        list_template = make_list_template(
-            spread_sheet=spread_sheet,
-            n_row=n_row,
-            n_col=n_col,
-            headers=new_head
-        )
-        return list_template
 
 
 # NOTE will probably be obviated by make_address_sheet refactor
@@ -680,7 +659,7 @@ if __name__ == "__main__":
     remove_route_sheets(spread_sheet, sleep_time=sleep_time)
 
     # create list_template
-    list_template = do_list_template(spread_sheet, opt_dict)
+    list_template = make_list_template(spread_sheet, opt_dict)
 
     # make route worksheets with optimized routes
     logging.info(date_str + ": updating sheets")
@@ -690,9 +669,6 @@ if __name__ == "__main__":
         list_template,
         sleep_time=sleep_time
     )
-
-    # delete list_template
-    do_list_template(spread_sheet)
 
     # links filename, then make links and write to file
     links_fname = 'links_' + date_str + '.html'

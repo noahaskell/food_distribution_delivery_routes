@@ -46,30 +46,24 @@ def test_get_gsheet():
     assert len(values) == 320, "wrong number of values in Everything sheet"
 
 
-def test_do_list_template():
+def test_make_list_template():
     # check for list template, get rid of it if it's there
-    init_names = get_worksheet_names()
+    init_names = oml.get_worksheet_names(SHEET)
     if 'List Template' in init_names:
         lt = SHEET.worksheet('List Template')
         SHEET.del_worksheet(lt)
     # test do_list_template function
-    list_template = oml.do_list_template(SHEET, ADD_DICT)
-    names_mk = get_worksheet_names()
-    oml.do_list_template(SHEET)
-    names_rm = get_worksheet_names()
+    list_template = oml.make_list_template(SHEET, ADD_DICT)
+    names_mk = oml.get_worksheet_names(SHEET)
     assert isinstance(list_template, oml.gspread.models.Worksheet), \
         "list_template is the wrong type"
     assert 'List Template' in names_mk, "List template not created"
-    assert 'List Template' not in names_rm, "List template not removed"
-
-
-def test_make_list_template():
-    head = ['Name', 'Address', 'Zip', 'Dietary', '1 or 2']
-    temp = oml.make_list_template(SHEET, 5, 5, head)
-    vals = temp.get_all_values()
+    head = ['Name', 'Email address', 'Phone number',
+            'Street address', 'Apt / Unit #', 'City, State',
+            'Zip code', 'Dietary', '1 or 2']
+    vals = list_template.get_all_values()
     check_list = [vals[0][i] == h for i, h in enumerate(head)]
     assert all(check_list), "list template headers don't match."
-    SHEET.del_worksheet(temp)
 
 
 def test_make_address_dict():
@@ -95,7 +89,7 @@ def test_read_address_sheets():
 
 def test_remove_route_sheets():
     oml.remove_route_sheets(SHEET)
-    names = get_worksheet_names()
+    names = oml.get_worksheet_names(SHEET)
     num_route_lists = 0
     for n in names:
         if '~ List' in n:
