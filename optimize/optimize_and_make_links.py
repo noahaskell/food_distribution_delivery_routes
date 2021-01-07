@@ -416,7 +416,7 @@ def update_sheets(spread_sheet, val_dict,
         same as input dict, but with sheet_links added to subdicts
     """
     titles = [t.title for t in spread_sheet.worksheets()]
-    for name, sub_dict in val_dict.items():
+    for name, sub_dict in sorted(val_dict.items()):
         title_t = name + ' ~ List'
         sheet_idx = sub_dict['index']
         values = sub_dict['all_values']
