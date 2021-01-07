@@ -11,12 +11,9 @@ import logging
 # NOTES
 # - refactor make_address_sheets
 #  - robustness to sorts on main sheet
-#  - separate address list construction and ~ List sheets
-#  - read in main page, make dicts, optimize routes, make ~ List sheets
-#    i.e., remove the sheet making step with non-optimized routes
 # - add functionality to only process subset
 #  - e.g., read in, optimize, make links for subset of ~ List sheets
-# - ensure alphabetical order of ~ List sheets
+# - make new_head global or make function for generating new_head?
 
 logging.basicConfig(filename='info.log',
                     level=logging.INFO)
