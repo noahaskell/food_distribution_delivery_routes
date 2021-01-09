@@ -9,8 +9,6 @@ from time import sleep
 import logging
 
 # NOTES
-# - refactor make_address_sheets
-#  - robustness to sorts on main sheet
 # - add functionality to only process subset
 #  - e.g., read in, optimize, make links for subset of ~ List sheets
 # - make new_head global or make function for generating new_head?
