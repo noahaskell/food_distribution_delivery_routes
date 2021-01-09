@@ -200,7 +200,7 @@ def make_address_dict(spread_sheet, sleep_time=0.25):
         add_dict[driver]['index'] = idx + 1
 
     if testing:
-        for driver in drivers[5:]:
+        for driver in sorted(drivers)[5:]:
             add_dict.pop(driver)
 
     return add_dict
