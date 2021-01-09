@@ -411,8 +411,14 @@ def update_sheets(spread_sheet, val_dict,
     dict
         same as input dict, but with sheet_links added to subdicts
     """
+    ss_title = spread_sheet.title
+    if ss_title == 'test_for_reordering_address_lists':
+        testing = True
+    else:
+        testing = False
     titles = [t.title for t in spread_sheet.worksheets()]
-    for name, sub_dict in sorted(val_dict.items()):
+    for n, name_sub_dict in enumerate(sorted(val_dict.items())):
+        name, sub_dict = name_sub_dict
         title_t = name + ' ~ List'
         sheet_idx = sub_dict['index']
         values = sub_dict['all_values']
@@ -440,6 +446,8 @@ def update_sheets(spread_sheet, val_dict,
         sleep(sleep_time)
         format_worksheet(worksheet, n_row=n_rows, n_col=n_cols,
                          to_do={'init': False, 'driver': True})
+        if testing and n >= 5:
+            break
     return val_dict
 
 
