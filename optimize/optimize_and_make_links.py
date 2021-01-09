@@ -183,6 +183,7 @@ def make_address_dict(spread_sheet, sleep_time=0.25):
         temp_driver = row[driver_idx]
         if temp_driver != '':
             if 'Driver' in row[day_idx]:
+                temp_list[-1] = row[day_idx]
                 add_dict[temp_driver]['all_values'].append(temp_list)
                 add_dict[temp_driver]['driver_added'] = True
             else:
