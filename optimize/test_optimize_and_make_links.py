@@ -64,6 +64,10 @@ def test_make_list_template():
     vals = list_template.get_all_values()
     check_list = [vals[0][i] == h for i, h in enumerate(head)]
     assert all(check_list), "list template headers don't match."
+    fin_names = oml.get_worksheet_names(SHEET)
+    if 'List Template' in fin_names:
+        lt = SHEET.worksheet('List Template')
+        SHEET.del_worksheet(lt)
 
 
 def test_make_address_dict():
