@@ -142,8 +142,10 @@ def make_address_dict(spread_sheet, sleep_time=0.25):
     #  1 or 2 -- transform from number of family members
     if spread_sheet.title == 'test_for_reordering_address_lists':
         sheet_name = "Everything"
+        testing = True
     elif spread_sheet.title == '2020 Spring ~ Crock-Pot Dinner (Responses)':
         sheet_name = "Form Responses 1"
+        testing = False
     else:
         raise ValueError('Wrong spread_sheet, dude.')
     all_values = spread_sheet.worksheet(sheet_name).get_all_values()
@@ -196,6 +198,10 @@ def make_address_dict(spread_sheet, sleep_time=0.25):
         all_val_list = add_dict[driver]['all_values']
         add_dict[driver]['add_list'] = make_address_list(all_val_list)
         add_dict[driver]['index'] = idx + 1
+
+    if testing:
+        for driver in drivers[5:]:
+            add_dict.pop(driver)
 
     return add_dict
 
