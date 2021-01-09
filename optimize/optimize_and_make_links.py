@@ -142,10 +142,8 @@ def make_address_dict(spread_sheet, sleep_time=0.25):
     #  1 or 2 -- transform from number of family members
     if spread_sheet.title == 'test_for_reordering_address_lists':
         sheet_name = "Everything"
-        test_sheet = True
     elif spread_sheet.title == '2020 Spring ~ Crock-Pot Dinner (Responses)':
         sheet_name = "Form Responses 1"
-        test_sheet = False
     else:
         raise ValueError('Wrong spread_sheet, dude.')
     all_values = spread_sheet.worksheet(sheet_name).get_all_values()
@@ -165,10 +163,16 @@ def make_address_dict(spread_sheet, sleep_time=0.25):
 
     # construct address lists
     add_dict = {}
-    this_driver = all_values[1][driver_idx]
-    all_val_list = [new_head, origin]
-    idx = 1
-    for row in all_values[1:]:
+    drivers = list(set([x[driver_idx] for x in all_values]))
+    if '' in drivers:
+        drivers.remove('')
+    all_val_head = [new_head, origin]
+    for driver in drivers:
+        add_dict[driver] = {
+            'all_values': all_val_head.copy(),
+            'driver_added': False
+        }
+    for row in all_values[1:]:  # skip headers
         temp_list = [row[j] for j in indices]
         if int(temp_list[-2]) > 6:
             temp_list[-2] = 'x2'
@@ -176,27 +180,22 @@ def make_address_dict(spread_sheet, sleep_time=0.25):
             temp_list[-2] = 'x1'
         else:
             temp_list[-2] = ''
-        if this_driver == row[driver_idx]:
-            all_val_list.append(temp_list)
-            day_driver = row[day_idx]
-        else:
-            all_val_list[-1][-1] = day_driver
-            add_dict[this_driver] = {
-                'all_values': all_val_list,
-                'add_list': make_address_list(all_val_list),
-                'index': idx
-            }
-            idx += 1
-            this_driver = row[driver_idx]
-            all_val_list = [new_head, origin, temp_list]
-        if test_sheet:
-            if len(add_dict) > 5:
-                break
-    if not test_sheet:  # prevents weird straggler sheet when testing
-        all_val_list[-1][-1] = row[day_idx]
-        add_dict[this_driver] = {'all_values': all_val_list,
-                                 'add_list': make_address_list(all_val_list),
-                                 'index': idx}
+        temp_driver = row[driver_idx]
+        if temp_driver != '':
+            if 'Driver' in row[day_idx]:
+                add_dict[temp_driver]['all_values'].append(temp_list)
+                add_dict[temp_driver]['driver_added'] = True
+            else:
+                if add_dict[temp_driver]['driver_added']:
+                    add_dict[temp_driver]['all_values'].insert(-1, temp_list)
+                else:
+                    add_dict[temp_driver]['all_values'].append(temp_list)
+    for idx, driver in enumerate(sorted(drivers)):
+        add_dict[driver].pop('driver_added')
+        all_val_list = add_dict[driver]['all_values']
+        add_dict[driver]['add_list'] = make_address_list(all_val_list)
+        add_dict[driver]['index'] = idx + 1
+
     return add_dict
 
 
@@ -633,7 +632,7 @@ def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25,
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    testing = False
+    testing = True
     date_str = str(datetime.today()) .split('.')[0]
     sleep_time = 2.5
     logging.info(date_str + ": sleep_time = " + str(sleep_time))
