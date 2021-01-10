@@ -115,7 +115,7 @@ def make_list_template(spread_sheet, add_dict, sleep_time=0.25):
     return worksheet
 
 
-def make_address_dict(spread_sheet, sleep_time=0.25):
+def make_address_dict(spread_sheet):
     """
     Reads in main sheet (form responses), pulls relevant columns
     grouped by driver, creates driver-specific address sheets
@@ -448,9 +448,9 @@ def update_sheets(spread_sheet, val_dict,
             )
         update_sheet(worksheet, values, data_range)
         sub_dict['link'] = make_sheet_link(spread_sheet, worksheet)
-        sleep(sleep_time)
         format_worksheet(worksheet, n_row=n_rows, n_col=n_cols,
                          to_do={'init': False, 'driver': True})
+        sleep(sleep_time)
         if testing and n >= 5:
             break
     return val_dict
@@ -654,7 +654,7 @@ if __name__ == "__main__":
 
     # make address sheets
     logging.info(date_str + ": making address sheets")
-    add_dict = make_address_dict(spread_sheet, sleep_time=sleep_time)
+    add_dict = make_address_dict(spread_sheet)
 
     # get dict of address lists, worksheet values
     # logging.info(date_str + ": processing address sheets")
@@ -662,10 +662,10 @@ if __name__ == "__main__":
 
     # optimize waypoint orders
     logging.info(date_str + ": optimizing routes")
-    opt_dict = optimize_waypoints(add_dict, sleep_time=sleep_time)
+    opt_dict = optimize_waypoints(add_dict)  # removed sleep_time=sleep_time
 
     # remove old route sheets; add sleep_time?
-    remove_route_sheets(spread_sheet, sleep_time=sleep_time)
+    remove_route_sheets(spread_sheet)  # removed sleep_time=sleep_time
 
     # create list_template
     list_template = make_list_template(spread_sheet, opt_dict)
