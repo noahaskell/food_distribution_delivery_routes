@@ -648,7 +648,7 @@ if __name__ == "__main__":
     # get spread_sheet interface
     testing = False
     date_str = str(datetime.today()) .split('.')[0]
-    sleep_time = 1.0
+    sleep_time = 1.25
     logging.info(date_str + ": sleep_time = " + str(sleep_time))
     logging.info(date_str + ": getting spreadsheet")
     spread_sheet = get_gsheet(test_sheet=testing)
@@ -667,7 +667,7 @@ if __name__ == "__main__":
 
     # remove old route sheets; add sleep_time?
     logging.info(date_str + ": removing route worksheets")
-    remove_route_sheets(spread_sheet, sleep_time=0.5)
+    remove_route_sheets(spread_sheet, sleep_time=sleep_time)
 
     # create list_template
     list_template = make_list_template(spread_sheet, opt_dict)
