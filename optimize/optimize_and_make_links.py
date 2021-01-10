@@ -446,11 +446,12 @@ def update_sheets(spread_sheet, val_dict,
                 cols=n_cols,
                 index=sheet_idx
             )
+        sleep(sleep_time)
         update_sheet(worksheet, values, data_range)
+        sleep(sleep_time)
         sub_dict['link'] = make_sheet_link(spread_sheet, worksheet)
         format_worksheet(worksheet, n_row=n_rows, n_col=n_cols,
                          to_do={'init': False, 'driver': True})
-        sleep(sleep_time)
         if testing and n >= 5:
             break
     return val_dict
@@ -645,9 +646,9 @@ def format_worksheet(worksheet, n_row=None, n_col=None, sleep_time=0.25,
 
 if __name__ == "__main__":
     # get spread_sheet interface
-    testing = True
+    testing = False
     date_str = str(datetime.today()) .split('.')[0]
-    sleep_time = 2.5
+    sleep_time = 1.0
     logging.info(date_str + ": sleep_time = " + str(sleep_time))
     logging.info(date_str + ": getting spreadsheet")
     spread_sheet = get_gsheet(test_sheet=testing)
@@ -665,7 +666,8 @@ if __name__ == "__main__":
     opt_dict = optimize_waypoints(add_dict)  # removed sleep_time=sleep_time
 
     # remove old route sheets; add sleep_time?
-    remove_route_sheets(spread_sheet)  # removed sleep_time=sleep_time
+    logging.info(date_str + ": removing route worksheets")
+    remove_route_sheets(spread_sheet, sleep_time=0.5)
 
     # create list_template
     list_template = make_list_template(spread_sheet, opt_dict)
