@@ -682,8 +682,8 @@ if __name__ == "__main__":
     )
 
     # links filename, then make links and write to file
-    links_fname = 'links_' + date_str + '.html'
-
-    # process_routes(opt_dict, links_fname)
     logging.info(date_str + ": making links page")
+    for ss in ':- ':
+        date_str = date_str.replace(ss, '_')
+    links_fname = 'links_' + date_str + '.html'
     make_links_page(opt_dict, links_fname)
