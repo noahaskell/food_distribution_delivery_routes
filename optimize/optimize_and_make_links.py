@@ -490,7 +490,7 @@ def make_links_page(address_dict, out_file='links.html'):
     html_z = '</body></html>'
     par_a = '<p style="font-family:Roboto;font-size:13px">'
     links_list = []
-    for name, sub_dict in address_dict.items():
+    for name, sub_dict in sorted(address_dict.items()):
         dir_text = name + ' ~ Directions'
         dir_link = make_directions_link(sub_dict['add_list'])
         sheet_text = name + ' ~ List'
