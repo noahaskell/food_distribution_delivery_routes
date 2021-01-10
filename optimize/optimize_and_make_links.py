@@ -90,27 +90,27 @@ def make_list_template(spread_sheet, add_dict, sleep_time=0.25):
     worksheet_names = get_worksheet_names(spread_sheet)
     if 'List Template' in worksheet_names:
         worksheet = spread_sheet.worksheet('List Template')
-    else:
-        n_row_l, n_col_l = [], []
-        for driver, subdict in add_dict.items():
-            add_list = subdict['all_values']
-            n_row_l.append(len(add_list))
-            n_col_l.append(len(add_list[0]))
-        n_row, n_col = max(n_row_l), max(n_col_l)
-        data_range = "A1:" + alphabet[n_col-1] + "1"
+        spread_sheet.del_worksheet(worksheet)
+    n_row_l, n_col_l = [], []
+    for driver, subdict in add_dict.items():
+        add_list = subdict['all_values']
+        n_row_l.append(len(add_list))
+        n_col_l.append(len(add_list[0]))
+    n_row, n_col = max(n_row_l), max(n_col_l)
+    data_range = "A1:" + alphabet[n_col-1] + "1"
 
-        worksheet = spread_sheet.add_worksheet(
-            title='List Template',
-            rows=n_row,
-            cols=n_col,
-            index=1
-        )
+    worksheet = spread_sheet.add_worksheet(
+        title='List Template',
+        rows=n_row,
+        cols=n_col,
+        index=1
+    )
 
-        new_head = [['Name', 'Email address', 'Phone number',
-                     'Street address', 'Apt / Unit #', 'City, State',
-                     'Zip code', 'Dietary', '1 or 2', '']]
-        update_sheet(worksheet, new_head, data_range)
-        format_worksheet(worksheet, n_row, n_col, sleep_time=sleep_time)
+    new_head = [['Name', 'Email address', 'Phone number',
+                 'Street address', 'Apt / Unit #', 'City, State',
+                 'Zip code', 'Dietary', '1 or 2', '']]
+    update_sheet(worksheet, new_head, data_range)
+    format_worksheet(worksheet, n_row, n_col, sleep_time=sleep_time)
 
     return worksheet
 
