@@ -174,7 +174,7 @@ def make_address_dict(spread_sheet):
         }
     for row in all_values[1:]:  # skip headers
         temp_list = [row[j] for j in indices]
-        if int(temp_list[-2]) > 6:
+        if int(temp_list[-2]) > 8:
             temp_list[-2] = 'x2'
         elif int(temp_list[-2]) > 0:
             temp_list[-2] = 'x1'
