@@ -685,5 +685,5 @@ if __name__ == "__main__":
     logging.info(date_str + ": making links page")
     for ss in ':- ':
         date_str = date_str.replace(ss, '_')
-    links_fname = 'links_' + date_str + '.html'
+    links_fname = 'links/links_' + date_str + '.html'
     make_links_page(opt_dict, links_fname)
