@@ -138,10 +138,10 @@ def make_address_dict(spread_sheet):
     # Name, Email address, Phone number, Street address, Apt / Unit #,
     # City, State; Zip code, Dietary, 1 or 2, notes
     #  1 or 2 -- transform from number of family members
-    if spread_sheet.title == 'test_for_reordering_address_lists':
+    if spread_sheet.title == config['sheet_name']['test']:
         sheet_name = "Everything"
         testing = True
-    elif spread_sheet.title == '2020 Spring ~ Crock-Pot Dinner (Responses)':
+    elif spread_sheet.title == config['sheet_name']['real']:
         sheet_name = "Form Responses 1"
         testing = False
     else:
@@ -174,23 +174,26 @@ def make_address_dict(spread_sheet):
         }
     for row in all_values[1:]:  # skip headers
         temp_list = [row[j] for j in indices]
-        if int(temp_list[-2]) >= 7:
-            temp_list[-2] = 'x2'
-        elif int(temp_list[-2]) > 0:
-            temp_list[-2] = 'x1'
+        if all(el == '' for el in temp_list):
+            continue
         else:
-            temp_list[-2] = ''
-        temp_driver = row[driver_idx]
-        if temp_driver != '':
-            if 'Driver' in row[day_idx]:
-                temp_list[-1] = row[day_idx]
-                add_dict[temp_driver]['all_values'].append(temp_list)
-                add_dict[temp_driver]['driver_added'] = True
+            if int(temp_list[-2]) >= 7:
+                temp_list[-2] = 'x2'
+            elif int(temp_list[-2]) > 0:
+                temp_list[-2] = 'x1'
             else:
-                if add_dict[temp_driver]['driver_added']:
-                    add_dict[temp_driver]['all_values'].insert(-1, temp_list)
-                else:
+                temp_list[-2] = ''
+            temp_driver = row[driver_idx]
+            if temp_driver != '':
+                if 'Driver' in row[day_idx]:
+                    temp_list[-1] = row[day_idx]
                     add_dict[temp_driver]['all_values'].append(temp_list)
+                    add_dict[temp_driver]['driver_added'] = True
+                else:
+                    if add_dict[temp_driver]['driver_added']:
+                        add_dict[temp_driver]['all_values'].insert(-1, temp_list)
+                    else:
+                        add_dict[temp_driver]['all_values'].append(temp_list)
     for idx, driver in enumerate(sorted(drivers)):
         add_dict[driver].pop('driver_added')
         all_val_list = add_dict[driver]['all_values']
